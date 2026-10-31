@@ -697,32 +697,101 @@ Since section 13, a function type can say which effects its function may request
 
 - An expression may request whatever its parts may, and an application may also request what its function's type lists.
 - A function is the exception. Nothing in it happens until it is applied, so what its bodies may request goes into its type instead, and is requested where it is applied.
-- A handler answers the requests of one effect. The whole handler may request what the expression inside it may, without that effect, and whatever its cases' bodies may. In its cases for values, the patterns fit the type of what the expression comes to, and any such value matches some case. In each case for a request, the patterns fit the request's input types, and the rest, `k`, takes the request's answer type and gives back what the handler gives back. Every request of the effect, with any inputs, matches some case for it.
+- A handler answers the requests of one effect. The whole handler may request what the expression inside it may, without that effect, and whatever its cases' bodies may. In its cases for values, the patterns fit the type of what the expression comes to, and any such value matches some case. In each case for a request, the patterns fit the request's input types, and the rest, `k`, takes the request's answer type, gives back what the handler gives back, and may request what the whole handler may. Every request of the effect, with any inputs, matches some case for it.
 
-A type can leave effects open, as `X` leaves a type open. `each` applies `f`, so whatever `f` may request, `each` may too:
+A type says what may be requested, not what will be. So a function that may request less can go wherever one that may request more is allowed:
 
-    each : ((X) → Y ! Z, List(X)) → List(Y) ! Z
+    e : (A, …) → B ! E'      when e : (A, …) → B ! E, and E' lists every effect E lists
 
-On the map:
+Rules for playing can then be held in one list, whether they ask the console or not:
 
-    E ::= Z                  a placeholder for effects                      new
+    rules : List((Hand) → Hand ! {Console})
+    rules = cons(answer, cons((a) ↦ read(), empty))
 
-`Z` stands for any effects, and each use of `each` chooses them.
+`answer` requests nothing, so it is also a `(Hand) → Hand ! {Console}`, and goes in the list beside a rule that asks a person for the next hand.
 
-With these rules, a checked expression comes to a value of its type, goes on forever, or waits on a request its type lists. So a checked program whose type lists no effects never gets stuck, and never makes a request that nothing answers. One whose type lists only `Console`, as `game`'s does, asks only the world outside.
+Now a checked expression comes to a value of its type, goes on forever, or waits on a request its type lists. So a checked program whose type lists no effects never gets stuck, and never makes a request that nothing answers. One whose type lists only `Console`, as `game`'s does, asks only the world outside.
 
-## 18. The whole language
+## 18. Effects left open
 
-These letters describe the language: `e` an expression, `v` a value, `x` a placeholder, `c` a constructor, `n` a defined name, `p` a pattern, `d` a constructor as declared, `T` a type's name, `F` an effect, `r` a request, `h` a handler's case, `A` and `B` types, `X` a placeholder in a type, `E` what may be requested, `Z` a placeholder for effects. `e, …` means any number of expressions, even none, and likewise for the other letters. `| …` after a case means more cases like it, as many as needed. Parentheses only group, and a body reaches as far as it can.
+`Score` is a memory of a `Nat`. A memory of a hand, such as the last hand the other player showed, would need another effect just like it, with requests of its own. The idea is the same each time; only the type of what is kept changes. So an effect can take placeholders, as a type can:
+
+    effect State(X) = get : () → X | put : (X) → Unit
+
+`State(Nat)` is a memory of a `Nat`, and `State(Hand)` a memory of a hand. `State` replaces `Score`: from here on, `get` and `put` are `State`'s requests, and `record` and `both` may request `State(Nat)`. Each use of a request chooses a type for each placeholder of its effect, and is a request of the effect filled with them: in `record`, `get()` is a `Nat`, and a request of `State(Nat)`.
+
+`keep`'s handler never looks at the memory, only hands it on, so it keeps a memory of any type:
+
+    keep : (() → X ! {State(Y)}, Y) → Pair(X, Y)
+
+A request's type can also have a placeholder that its effect doesn't take. That placeholder belongs to the request, and each use of the request chooses it. Giving up:
+
+    effect Fail = fail : () → X
+
+`fail()` can stand wherever something is expected, whatever its type: a `Hand` in one place, a `Bool` in another. This function gives the first player's hand if it won, and gives up otherwise:
+
+    winning : (Round) → Hand ! {Fail}
+    winning = (round(a, b)) ↦ ((true) ↦ a | (false) ↦ fail())(beats(a, b))
+
+A handler's case for `fail` is checked without knowing which type `X` is, as a definition is in section 11, and no value is of every type. So the case has no answer to give `k`, and never goes on: the error of section 14, as a request that can be made anywhere.
+
+    handle winning(round(rock, paper)) with
+          (a) ↦ cons(a, empty)
+        | (fail(), k) ↦ empty
+
+        comes to   empty
+
+The handler turns giving up into a list: the winning hand, or nothing.
+
+Effects can be left open as well. `each` applies `f` to every item, so whatever `f` may request, `each` may too. A **placeholder for effects** says so:
+
+    each : ((X) → Y ! {Z}, List(X)) → List(Y) ! {Z}
+
+`Z` stands for any effects, even none, and each use of `each` chooses them.
+
+A list can name some effects and end with a placeholder, for any others. `keep` answers `State`, and anything else its task requests passes its handler by (section 13), so `keep` requests it in turn:
+
+    keep : (() → X ! {State(Y), Z}, Y) → Pair(X, Y) ! {Z}
+
+So a task that shows a hand while it keeps score can be given to `keep`:
+
+    keep(() ↦ then(show(rock), both(round(paper, rock), round(rock, paper))), zero)
+
+This use chooses `{Console}` for `Z`. `show(rock)` passes `keep`'s handler by, to the outside, and the whole may request `Console`. With `keep`'s earlier type, this carries out just the same, but is not checked.
+
+Data can hold functions that make requests. The `Player` of section 10 holds a rule that requests nothing, but a person at the keyboard plays by a rule that asks `Console`. A type can take placeholders for effects, as well as for types:
+
+    Player(Z) = player((Hand) → Hand ! {Z})
+
+    next : (Player(Z), Hand) → Hand ! {Z}
+    next = (player(f), a) ↦ f(a)
+
+`Player` and `next` replace those of section 10. `player(answer)` is a `Player({})`, which requests nothing, and `player((a) ↦ read())`, a person, is a `Player({Console})`. An effect can take placeholders for effects in the same way.
+
+On the map, a type and an effect each take placeholders for types and for effects, and a list of effects can end with a placeholder:
+
+    T(X, …, Z, …) = d | …                        a type that takes types and effects          widened
+    effect F(X, …, Z, …) = r : (A, …) → B | …    an effect that takes types and effects       widened
+    A ::= T(A, …, E, …)                          a type, filled                               widened
+    E ::= {F(A, …, E, …), …}                     effects, filled                              widened
+          {F(A, …, E, …), …, Z}                  these effects, and any that Z stands for     new
+
+Each use of a request, like each use of a name or constructor, chooses what goes in place of the placeholders in its type and in its effect's, the same throughout that use. Effects put in place of `Z` join the list it ends: with `{Console}` for `Z`, `{State(Nat), Z}` is `{State(Nat), Console}`. Once filled, a list names each effect at most once, since a handler's cases are for requests by name, and could not tell `State(Nat)` from `State(Hand)`.
+
+A checked expression still comes to a value of its type, goes on forever, or waits on a request its type lists.
+
+## 19. The whole language
+
+These letters describe the language: `e` an expression, `v` a value, `x` a placeholder, `c` a constructor, `n` a defined name, `p` a pattern, `d` a constructor as declared, `T` a type's name, `F` an effect's name, `r` a request, `h` a handler's case, `A` and `B` types, `X` a placeholder in a type, `E` what may be requested, `Z` a placeholder for effects. `e, …` means any number of expressions, even none, and likewise for the other letters. `| …` after a case means more cases like it, as many as needed. Parentheses only group, and a body reaches as far as it can.
 
 **What we write**: declarations and definitions, then one expression to carry out.
 
-    T(X, …) = d | …                  a type, with its constructors; T alone if it takes no types
-    d ::= c                          a constructor holding nothing
-          c(A, …)                    a constructor holding contents
-    effect F = r : (A, …) → B | …    an effect, with its requests
-    n : A                            declares n
-    n = e                            defines n
+    T(X, …, Z, …) = d | …                        a type, with its constructors; T alone if it takes nothing
+    d ::= c                                      a constructor holding nothing
+          c(A, …)                                a constructor holding contents
+    effect F(X, …, Z, …) = r : (A, …) → B | …    an effect, with its requests; F alone if it takes nothing
+    n : A                                        declares n
+    n = e                                        defines n
 
 **Expressions**
 
@@ -749,11 +818,11 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
 
 **Types**
 
-    A ::= T(A, …)                    a type, filled; T alone if it takes none
+    A ::= T(A, …, E, …)              a type, filled; T alone if it takes none
           X                          a placeholder in a type
           (A, …) → B ! E             a function type, and what it may request; ! E left out when it lists none
-    E ::= {F, …}                     effects
-          Z                          a placeholder for effects
+    E ::= {F(A, …, E, …), …}         effects, in any order; F alone if it takes none
+          {F(A, …, E, …), …, Z}      these effects, and any that Z stands for
 
 **Steps**
 
@@ -771,26 +840,29 @@ The rest is `e` with a new placeholder `y` where the request was, inside the sam
 
 Carrying out ends in a value, goes on forever, gets stuck, or waits on a request that nothing in the program answers. Checking rules out getting stuck, and says which requests may be left waiting.
 
-**Checking**: one rule for each form.
+**Checking**: one rule for each form, and one more for what may be requested.
 
-    c : T(X, …)                        when T(X, …) lists c
-    c : (A, …) → T(X, …)               when T(X, …) lists c(A, …)
+    c : T(X, …, Z, …)                  when T(X, …, Z, …) lists c
+    c : (A, …) → T(X, …, Z, …)         when T(X, …, Z, …) lists c(A, …)
     n : A                              when n is declared n : A
     x : A                              when its pattern gives it A
     e(e', …) : B                       when e : (A, …) → B ! E, and e', … : A, …
-    r(e, …) : B                        when F lists r : (A, …) → B, and e, … : A, …
+    r(e, …) : B                        when F(X, …, Z, …) lists r : (A, …) → B, and e, … : A, …
     ((p, …) ↦ e | …) : (A, …) → B ! E  when in every case the patterns fit A, …, and the body : B;
                                        and any values of types A, … match some case
     (handle e with h | …) : B          when e : A; in the cases for values, the patterns fit A, and any value
                                        of type A matches one; in each case for a request r : (A', …) → B',
-                                       the patterns fit A', …, and its rest takes a B' and gives back a B;
-                                       every request of the effect matches some case for it; and every body : B
+                                       with its effect filled as e may request it, the patterns fit A', …,
+                                       and its rest takes a B', gives back a B and may request what the whole
+                                       handler may; every request of the effect matches some case for it;
+                                       and every body : B
+    e : (A, …) → B ! E'                when e : (A, …) → B ! E, and E' lists every effect E lists
 
     x fits A           giving x : A
     c fits T(…)        when c : T(…)
     c(p, …) fits B     when c : (A, …) → B, and p, … fit A, …
 
-In the rules for constructors and defined names, any types can be put in place of the placeholders in their types, the same throughout one use. What may be requested adds up from the parts, except inside a function, where it goes into the function's type; and a handler takes away the effect it answers.
+In the rules for constructors, defined names and requests, any types can be put in place of the placeholders for types in their types, and any effects in place of those for effects, the same throughout one use; for a request, these include its effect's placeholders. What may be requested adds up from the parts, each request adding its effect as filled in that use, except inside a function, where it goes into the function's type; and a handler takes away the effect it answers. Effects put in place of `Z` join the list it ends, and once filled, a list names each effect at most once.
 
 **The guarantee**: a checked expression comes to a value of its type, goes on forever, or waits on a request its type lists. It never gets stuck.
 
