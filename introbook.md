@@ -10,7 +10,7 @@
 |---|---|---|
 | **Base** | functions alone: make one, apply one | The *theoretical* minimum. It can already compute anything (Church, 1936). |
 | **Core** | **data**, made by constructors and used by patterns; **functions**, made by cases and used by applying; **names** that can refer to themselves; **types**, which define kinds of things | The *natural* minimum. Each job that functions were secretly doing gets its own form, so it can be seen. Types say what each kind of thing is. |
-| **Effects** | requests (state, errors, input/output) answered by handlers | The one thing the core can't say locally: *doing*, as opposed to *saying* |
+| **Effects** | requests (state, errors, search, taking turns, input/output) answered by handlers | The one thing the core can't say locally: *doing*, as opposed to *saying* |
 
 On top of these sit two things that add nothing to what can be said. **Conveniences** make saying shorter: they're shorter ways to write what's already there. **Claims** say things about what's written: from "this function, given a hand, gives back a hand", which a checker can often settle by itself, to any precise claim, settled by a proof. A type is a definition, so it can't be false. A claim can, so it needs checking. Erase every claim and every program runs the same, so claims aren't part of the medium. They're written about it.
 

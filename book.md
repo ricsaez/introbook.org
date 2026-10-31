@@ -2,11 +2,11 @@
 
 This book builds a small language, one piece at a time. Each piece is added because of something the pieces before it cannot say, and each comes with examples that mean something. Most are about the game rock, paper, scissors.
 
-The language has two parts. The **core** is for saying things: things, functions that turn things into other things, and the kinds things come in. **Effects** are for doing things: keeping a score that changes, giving up, trying every possibility, talking to the world outside.
+The language has two parts. The **core** is for saying things: things, functions that turn things into other things, and the kinds things come in. **Effects** are for doing things: keeping a score that changes, giving up, trying every possibility, taking turns, talking to the world outside.
 
 On top of a language can sit **claims** about what is written in it: that a function, given a hand, always gives back a hand, say. A claim can be false, so it has to be checked. The kinds things come in are different: they are defined, and a definition says what a word means, so it cannot be false. Claims add nothing to what can be said, only to what we know about it, so this book leaves them out. It is about the language itself.
 
-As we go, we keep a **map** of the language: a few lines that list every form it has. Each section adds to it. By the end, the map is the whole language on one page, and every way its pieces combine can be read off it.
+As we go, we keep a **map** of the language: a few lines that list every form it has. Most sections add to it. By the end, the map is the whole language on one page, and every way its pieces combine can be read off it.
 
 ## 1. Things
 
@@ -97,7 +97,7 @@ What we write is declarations and definitions, then one expression to carry out.
     T = c | …                declares the type T, with its constructors
     n = e                    defines n as e
 
-Every section from here on adds to the map.
+Most sections from here on add to the map.
 
 ## 4. Carrying out
 
@@ -561,7 +561,7 @@ Each `k(…)` goes on from the request with a different hand, and comes to a val
 
 and `add(zero, add(zero, succ(zero)))` comes to `succ(zero)`. Against the three hands, rock wins once. This is search: one question, every answer tried.
 
-It can also keep `k` in data, and go on later (not shown here). That is how a generator works, giving back items one at a time, each when it is asked for, and how two computations can take turns.
+It can also keep `k` in data, and go on later, as section 17 shows. That is how a generator works, giving back items one at a time, each when it is asked for, and how two computations can take turns.
 
 So a handler receives a request and the rest, and chooses how to go on: once, never, several times, or later. The same two forms, request and handler, say all four.
 
@@ -595,13 +595,13 @@ A handler holds the memory:
     keep = (task, start) ↦ (handle task() with
                                 (outcome) ↦ ((m) ↦ pair(outcome, m))
                               | (get(), k) ↦ ((m) ↦ k(m)(m))
-                              | (put(new), k) ↦ ((m) ↦ k(unit)(new)))(start)
+                              | (put(b), k) ↦ ((m) ↦ k(unit)(b)))(start)
 
 `keep` takes a computation kept for later, `task`, and a starting score, `start`. Its handler doesn't give back an answer directly: it gives back a function waiting for the score so far, `m`. The `(start)` at the end gives it the starting score; the parentheses before it keep the handler in one piece, so it can be applied. Its cases read:
 
 - when the computation comes to a value: given the score `m`, give back that value together with `m`;
 - when asked for the score: given `m`, answer `m`, and go on with the score still `m`;
-- when told to set the score to `new`: given `m`, answer `unit`, and go on with the score `new` instead.
+- when told to set the score to `b`: given `m`, answer `unit`, and go on with the score `b` instead.
 
 The rest, `k`, has the handler around it, so it too gives back a function waiting for a score. That is why what `k(m)` gives back is given a score in turn: `k(m)(m)`.
 
@@ -625,7 +625,113 @@ The memory is handed along exactly as in section 12, in and out of every step. B
 
 would make `State(Nat)` a memory of a number, and `State(Hand)` a memory of a hand.
 
-## 16. Input and output
+On the map:
+
+    effect F(X, …) = r : (A, …) → B | …    an effect that takes types; F alone if it takes none      widened
+
+## 16. Many memories
+
+`keep` holds one memory. A program often needs more: a score for each player, say, and how many may not be known in advance. Two `keep`s, one around the other, would not do: both answer `get` and `put`, so the inner one would answer every request, and the outer one would never be asked.
+
+So each memory needs a name of its own, which a request can use to say which memory it means. The handler gives each memory a number when it is made, its **place**: the first memory is at `zero`, the next at `succ(zero)`, and so on.
+
+    effect Memory(X) = new : (X) → Nat | look : (Nat) → X | set : (Nat, X) → Unit
+
+`new(a)` makes a memory holding `a`, and is answered with its place. `look(p)` asks what the memory at `p` holds. `set(p, a)` makes it hold `a` instead.
+
+The handler keeps every memory in one list, each at the position of its place. Four small functions work with such a list: how many items it has, the item at a position, the list with the item at a position replaced, and the list with one more item at the end:
+
+    size = (empty) ↦ zero | (cons(a, rest)) ↦ succ(size(rest))
+    at = (cons(a, rest), zero) ↦ a | (cons(a, rest), succ(n)) ↦ at(rest, n)
+    replace = (cons(a, rest), zero, b) ↦ cons(b, rest) | (cons(a, rest), succ(n), b) ↦ cons(a, replace(rest, n, b))
+    append = (empty, b) ↦ cons(b, empty) | (cons(a, rest), b) ↦ cons(a, append(rest, b))
+
+The handler is `keep` again, with the list of every memory, `t`, where `keep` had one memory, `m`:
+
+    keepAll = (task) ↦ (handle task() with
+                            (outcome) ↦ ((t) ↦ outcome)
+                          | (new(a), k) ↦ ((t) ↦ k(size(t))(append(t, a)))
+                          | (look(p), k) ↦ ((t) ↦ k(at(t, p))(t))
+                          | (set(p, a), k) ↦ ((t) ↦ k(unit)(replace(t, p, a))))(empty)
+
+It starts with no memories, `empty`. Its cases read:
+
+- when the computation comes to a value: give back that value;
+- when asked for a new memory holding `a`: answer with the next place, which is how many memories there are so far, and go on with `a` added at the end;
+- when asked what is at `p`: answer with the item at `p`, and go on with the memories as they were;
+- when told to set `p` to `a`: answer `unit`, and go on with the item at `p` replaced by `a`.
+
+Now each player can keep a score of their own. `point` adds one to the memory at a place when a round was won, and `tally` scores one round for both players:
+
+    point = (true, p) ↦ set(p, succ(look(p))) | (false, p) ↦ unit
+    tally = (round(a, b), mine, yours) ↦ then(point(beats(a, b), mine), point(beats(b, a), yours))
+
+    keepAll(() ↦ ((mine, yours) ↦ then(tally(round(paper, rock), mine, yours), pair(look(mine), look(yours))))(new(zero), new(zero)))
+        comes to   pair(succ(zero), zero)
+
+The two `new(zero)` make two memories, at `zero` and at `succ(zero)`, and the function they are given calls them `mine` and `yours`. Paper beats rock, so `mine` goes up by one, and `yours` stays at zero.
+
+A place is a value like any other: it can be an input, be given back, or be held in data. So two placeholders can hold the same place, and then they name the same memory. Setting it through one changes what the other finds:
+
+    keepAll(() ↦ ((mine) ↦ ((ours) ↦ then(set(ours, succ(zero)), look(mine)))(mine))(new(zero)))
+        comes to   succ(zero)
+
+`ours` is given `mine`, so both hold the place `zero`. `set` through `ours` changes the memory there, and `look` through `mine` finds the change.
+
+This is how the names of a language like Python work. Each variable is a memory at a place of its own, so `x = x + 1` is `set(x, succ(look(x)))`. A list is a memory too, and `b = a` puts the same place in `b`: two names for one list, so a change made through `b` is seen through `a`. An object is data holding places, with functions that use them.
+
+Many memories added nothing to the map. `Memory` is an effect like any other, and `keepAll` is written in the language: memory is written with the map, not added to it.
+
+## 17. Going on later
+
+Section 14 said that a handler can keep the rest in data, and go on later. This is how one computation can be carried out a little at a time, and how two can take turns.
+
+A player can be a computation of its own, which gives its hands one at a time:
+
+    effect Give = give : (Hand) → Unit
+
+    cycle = (a) ↦ then(give(a), cycle(answer(a)))
+
+`cycle(rock)` gives rock, then the answer to rock, which is paper, then scissors, then rock again, and so on forever. It is written as if nothing else were happening: give a hand, then go on to the next.
+
+A handler can stop it at each hand, and give back the hand together with the rest, so that whoever holds them can go on when they want the next hand:
+
+    Moves = done | gave(Hand, (Unit) → Moves)
+
+    moves = (task) ↦ (u) ↦ handle task() with
+                               (outcome) ↦ done
+                             | (give(a), k) ↦ gave(a, k)
+
+`moves` takes a player as `keep` takes its task, as a computation kept for later. What it gives back is a function waiting for `unit`. Given it, it starts the player, and stops at the first hand. The rest, `k`, is waiting for `unit` too, the answer to `give`. Given it, it goes on to the next hand, and stops again. So a player not yet started and a player stopped after a hand are the same kind of thing: a function that, given `unit`, goes on to the next hand. Below, `k`, `k'` and `k''` are the rests after each hand:
+
+    moves(() ↦ cycle(rock))(unit)      comes to   gave(rock, k)
+    k(unit)                            comes to   gave(paper, k')
+    k'(unit)                           comes to   gave(scissors, k'')
+
+Each hand is worked out only when it is asked for. `cycle` never ends, but it is carried out only as far as someone asks. This is the generator of section 14.
+
+Two players can take turns. `turns` plays a number of rounds, asking each player in turn for its next hand, and stops early if either has no more:
+
+    turns = (zero, first, second) ↦ empty
+          | (succ(n), first, second) ↦ ((gave(a, first), gave(b, second)) ↦ cons(round(a, b), turns(n, first, second))
+                                        | (x, y) ↦ empty)(first(unit), second(unit))
+
+`first(unit)` and `second(unit)` ask each player for a hand. Each comes back as a hand and the player as it stands after it, and the inner function takes them apart. Inside it, `first` and `second` mean its own placeholders, the players after their hands, as in section 10. A player that always shows rock:
+
+    rocks = () ↦ then(give(rock), rocks())
+
+    turns(succ(succ(succ(zero))), moves(() ↦ cycle(rock)), moves(rocks))
+        comes to   cons(round(rock, rock), cons(round(paper, rock), cons(round(scissors, rock), empty)))
+
+Three rounds, and `wins` of them comes to `succ(zero)`: only paper against rock was won. After the third round, neither player is asked for another hand.
+
+Each player is written as if it played alone, and keeps track of where it is in its own rest: `cycle` remembers its last hand in `a`. `turns` holds both rests, and decides which goes on, and when. Add a request that means "wait until this is ready", and a handler that holds many rests and goes on with whichever is ready, and this is how `async` and `await` work, and how many computations share one computer. Carrying out takes one step at a time, so running two computations truly at the same time cannot be said in steps: a program can only ask for it, with a request that the outside answers.
+
+`Moves` holds itself in a new way: not directly, as a list holds a list, but inside a function type. A value is a `Moves` when it is `done`, or `gave` holding a hand and a function that, given `unit`, never gets stuck, and if it ends, ends in a `Moves`. That `Moves` is defined by the same sentence, and so on, and for `cycle`, which never ends, the sentence is never finished. So a type that holds itself is read this way: a value is of the type when following the definition, as far as it can be followed, never finds anything that does not fit. However many hands are asked of `moves(() ↦ cycle(rock))`, each is a hand, so what it gives back is a `Moves`.
+
+Going on later added nothing to the map. `Give` is an effect like any other, and `moves` and `turns` are written in the language.
+
+## 18. Input and output
 
 A request that no handler in the program answers goes outside it. Showing something on a screen, or reading what someone types, is a request answered by whatever runs the program:
 
@@ -633,7 +739,7 @@ A request that no handler in the program answers goes outside it. Showing someth
 
     game = () ↦ then(show(rock), beats(rock, read()))
 
-`game` shows `rock`, reads the other player's hand, and says whether rock won. Carried out, it stops at `show(rock)` and waits; whatever runs it shows rock on the screen and answers `unit`. At `read()` it waits again, for a hand. Inside the language, a handler can stand in for the outside, which is how such a program is tested:
+`game` shows `rock`, reads the other player's hand, and says whether rock won. Carried out, it stops at `show(rock)` and waits; whatever runs it shows rock on the screen and answers `unit`. At `read()` it waits again, for a hand. Each time the outside answers, its answer goes where the request was, and carrying out goes on: the outside works like one more handler, around the whole program, that always goes on once. Inside the language, a handler can stand in for the outside, which is how such a program is tested:
 
     handle game() with
           (outcome) ↦ outcome
@@ -663,9 +769,9 @@ comes to `read()`, and waits there for the person to choose.
 On the map, using `E` for the effects a function may ask:
 
     A ::= (A, …) → B ! E     a function type, and what it may ask; ! E left out when it lists none     widened
-    E ::= {F, …}             the effects it may ask                                                  new
+    E ::= {F(A, …), …}       the effects it may ask, filled; F alone if it takes none                new
 
-## 17. The whole language
+## 19. The whole language
 
 These letters describe the language: `e` an expression, `v` a value, `x` a placeholder, `c` a constructor, `n` a defined name, `p` a pattern, `d` a constructor as declared, `T` a type's name, `F` an effect's name, `r` a request, `h` a handler's case, `A` and `B` types, `X` a placeholder for a type, `E` the effects a function may ask. `e, …` means any number of expressions, even none, and likewise for the other letters. `| …` after a case means more cases like it, as many as needed. Parentheses only group, and a body reaches as far as it can.
 
@@ -718,6 +824,8 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
                                          with each answered by a value of the type it is answered with,
                                          ends, if it ends, in a value of type B
 
+When a type holds itself, as `List(X)` and `Moves` do, its definition uses itself: a value is of the type when following the definition, as far as it can be followed, never finds anything that does not fit. A type can hold itself in its contents, and in what a function gives back, but not in what a function takes: in `T = t((T) → Bool)`, following the definition would need to know already which values are `T`s, so it would go in a circle, and a definition that goes in a circle says nothing.
+
 Types are definitions, and nothing in carrying out uses them. That something is of a type is a claim, which can be true or false. Claims sit on top of the language.
 
 **Steps**
@@ -732,9 +840,9 @@ Types are definitions, and nothing in carrying out uses them. That something is 
                                          when the next thing to work out in e is a request r(v, …),
                                          and no handler in e around that request has a case for r
 
-The rest is `e` with a placeholder `y`, a name not used in `e`, where the request was, inside the same handler, as a function of `y`: `(y) ↦ handle … with h | …`. Steps happen in an application, first in what is applied, then in its inputs from left to right; in a request, in its inputs from left to right; in a handler, in the expression inside it. Nothing happens inside a function until it is applied.
+The rest is `e` with a placeholder `y`, a name used nowhere in `e` or in the handler's cases, where the request was, inside the same handler, as a function of `y`: `(y) ↦ handle … with h | …`. Steps happen in an application, first in what is applied, then in its inputs from left to right; in a request, in its inputs from left to right; in a handler, in the expression inside it. Nothing happens inside a function until it is applied.
 
-**How carrying out ends**: in a value; or waiting, when the next thing to work out is a request that no handler around it has a case for, which only the outside can answer; or stuck, when something is left to work out, no step applies, and it is not waiting; or never, going on forever.
+**How carrying out ends**: in a value; or waiting, when the next thing to work out is a request that no handler around it has a case for, which only the outside can answer, and when it does, its answer goes where the request was and carrying out goes on; or stuck, when something is left to work out, no step applies, and it is not waiting; or never, going on forever.
 
 **The shape**: every value is data or a function, every effect is requests and a handler, and every type says which values are of a kind. Data and functions, requests and handlers are each made one way and used one way:
 
@@ -753,12 +861,16 @@ The rest is `e` with a placeholder `y`, a name not used in `e`, where the reques
 | `def`, `lambda`                      | functions                                          |
 | `if`, `match`                        | cases                                              |
 | tuples, `dataclass`                  | constructors holding contents                      |
-| `list[Hand]`                         | `List(Hand)`                                       |
-| `Callable[[Hand], Hand]`             | `(Hand) → Hand`                                    |
+| `list[Hand]`                         | a memory holding a `List(Hand)`, at a place of its own |
+| `Callable[[Hand], Hand]`             | `(Hand) → Hand ! E`, with `E` unsaid: a Python function may ask anything |
 | `for`, `while`                       | a definition that uses itself, with a memory       |
-| `x = x + 1`                          | a memory: `put(succ(get()))`, its handler hidden   |
+| a variable                           | a memory at a place of its own                     |
+| `x = x + 1`                          | `set(x, succ(look(x)))`, its handler hidden        |
+| `b = a`, for a list `a`              | two names for one list                             |
+| `class`, an object                   | data holding places, with functions that use them  |
 | `raise`, `try`                       | a request whose handler never goes on              |
 | `yield`                              | a request whose handler goes on later              |
+| `async`, `await`                     | requests whose handler holds many rests, and goes on with whichever is ready |
 | `print`, `input`                     | requests the outside answers                       |
 | `TypeError`                          | getting stuck, turned into a request that a handler can answer |
 | a type hint on a variable or a function | a claim that it is of a type, checked by separate tools: on top of the language |
