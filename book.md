@@ -606,6 +606,7 @@ Otherwise, the expression inside a handler takes its steps as usual. A request t
     rest     the rest is (y) ↦ handle e' with h | …, where e' is e with y where the request was,
              and y is a name used nowhere in e or in the handler's cases
     ends     or waiting: the next thing to work out is a request that no handler around it has a case for
+    ends     stuck: something is left to work out, no step applies, and it is not waiting       widened
 
 Requests and handlers are made one way and used one way, like data and functions:
 
