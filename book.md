@@ -172,8 +172,7 @@ And applying puts the input in place:
     n(v)     becomes   the body of the first case in n's definition that v matches,
                        with v in place of its placeholder, if the pattern is one        widened
 
-    names    in a pattern, a name is a constructor if it was declared as one,
-             and otherwise a placeholder
+    names    in a pattern, a name is a constructor if it was declared as one, and otherwise a placeholder
     names    a placeholder means something only in the body of its own case
     names    no placeholder has the name of a defined name
     names    in a body, a name is a placeholder of its case, or else a constructor or a defined name
@@ -221,10 +220,9 @@ The cases of one function all have the same number of patterns: that is how many
                           with each value in place of its placeholder                   widened
 
     names    the placeholders of one case are all different
-    names    the cases of one function all have the same number of patterns: its number of inputs
+    names    the cases of one function all have the same number of patterns: how many inputs it takes
     names    a defined name is applied to as many inputs as its function takes
-    order    in n(e, …), the inputs are worked out from left to right;
-             then n(v, …) takes its step                                                widened
+    order    in n(e, …), the inputs are worked out from left to right; then n(v, …) takes its step    widened
 
 ## 7. Getting stuck
 
@@ -427,16 +425,15 @@ On the map, an application can now apply any expression, and a function written 
     v ::= (p, …) ↦ e | …     a function, written out                       new
 
     ((p, …) ↦ e | …)(v, …)     becomes   the body of the first case whose patterns v, … match,
-                                         with what each placeholder matched in its placenew
+                                         with what each placeholder matched in its place    new
 
 And the rules this section added:
 
-    order    in e(e, …), first what is applied, until it is a value; then the inputs,
-             from left to right; then the application takes its step                    widened
+    order    in e(e, …), first what is applied, until it is a value; then the inputs, from left
+             to right; then the application takes its step                                         widened
     ends     stuck also when what is applied is not a function, or takes a different number of inputs
-    names    a placeholder means something in the body of its own case,
-             functions inside it included                                               widened
-    names    in a body, a name means the nearest placeholder of that name               widened
+    names    a placeholder means something in the body of its own case, functions inside it included    widened
+    names    in a body, a name means the nearest placeholder of that name                             widened
     names    an input goes wherever the name means its placeholder, functions written there included
     writing  a body reaches as far as it can
 
@@ -444,8 +441,8 @@ A function type is a new form of type. Its parts are types, so it can hold any t
 
     A ::= (A, …) → B         a function type                               new
 
-    types    a value is of type (A, …) → B when, applied to values of types A, …,
-             it never gets stuck, and if it ends, it ends in a value of type B
+    types    a value is of type (A, …) → B when, applied to values of types A, …, it never gets stuck,
+             and if it ends, it ends in a value of type B
 
 The rest needed nothing new. An input can be any expression, and so can a body, so either can be a function; and the types in `c(A, …)` can be function types. Every value is data or a function, a defined name counting as a function. So every place a value can go holds one or the other:
 
@@ -482,9 +479,8 @@ On the map, `X` stands for any placeholder for a type; in what we write, they ar
 
     names    in a declaration, every name in a type is a declared type, or one of the declaration's
              own placeholders
-    types    a value is of type T(A, …) when it is built by one of T's constructors,
-             holding values of the types declared for its contents,
-             with A, … in place of T's placeholders                                     widened
+    types    a value is of type T(A, …) when it is built by one of T's constructors, holding values of
+             the types declared for its contents, with A, … in place of T's placeholders         widened
 
 The `A`s in `T(A, …)` are any types, so types nest too: `List(List(Hand))`, `List((Hand) → Hand)`, `Pair(Round, List(Bool))`.
 
@@ -588,7 +584,7 @@ On the map, using `F` for the name of an effect, `r` for a request, and `h` for 
           handle e with h | …        a handler around e                                          new
 
     h ::= (p) ↦ e                    for the value e comes to
-          (r(p, …), x) ↦ e           for a request: patterns for its inputs, and x for the rest
+          (r(p, …), x) ↦ e           for a request: patterns for its inputs, and a placeholder for the rest
 
 The steps:
 
@@ -604,14 +600,12 @@ Otherwise, the expression inside a handler takes its steps as usual. A request t
     names    each effect is declared once, and each request belongs to one effect
     names    a request is written with as many inputs as it is declared with, in an expression
              or in a handler's case
-    names    a request's name stands for that request, in a body or a handler's case,
-             and no placeholder has it
+    names    a request's name stands for that request, in a body or a handler's case; no placeholder has it
     order    in r(e, …), the inputs are worked out from left to right
     order    in handle e with h | …, steps happen in e
     rest     the rest is (y) ↦ handle e' with h | …, where e' is e with y where the request was,
              and y is a name used nowhere in e or in the handler's cases
-    ends     or waiting: the next thing to work out is a request that no handler around it
-             has a case for
+    ends     or waiting: the next thing to work out is a request that no handler around it has a case for
 
 Requests and handlers are made one way and used one way, like data and functions:
 
@@ -717,7 +711,7 @@ would make `State(Nat)` a memory of a number, and `State(Hand)` a memory of a ha
 
 On the map:
 
-    effect F(X, …) = r : (A, …) → B | …    an effect that takes types; F alone if none    widened
+    effect F(X, …) = r : (A, …) → B | …    an effect that takes types; F alone if it takes none      widened
 
 ## 16. Many memories
 
@@ -865,13 +859,13 @@ comes to `read()`, and waits there for the person to choose.
 
 On the map, using `E` for the effects a function may ask:
 
-    A ::= (A, …) → B ! E     a function type, and what it may ask; no ! E if it lists none    widened
-    E ::= {F(A, …), …}       the effects it may ask, filled; F alone if it takes none         new
+    A ::= (A, …) → B ! E     a function type, and what it may ask; ! E left out when it lists none     widened
+    E ::= {F(A, …), …}       the effects it may ask, filled; F alone if it takes none                new
 
-    types    a value is of type (A, …) → B ! E when, applied to values of types A, …,
-             it never gets stuck, makes only requests of the effects in E, with inputs
-             of the types they take, and, with each answered by a value of the type
-             it is answered with, ends, if it ends, in a value of type B                widened
+    types    a value is of type (A, …) → B ! E when, applied to values of types A, …, it never gets
+             stuck, makes only requests of the effects in E, with inputs of the types they take, and,
+             with each answered by a value of the type it is answered with, ends, if it ends,
+             in a value of type B                                                                   widened
     ends     a request that no handler answers goes outside; when the outside answers, its answer
              goes where the request was, and carrying out goes on
 
@@ -881,10 +875,10 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
 
 **What we write**: declarations and definitions, then one expression to carry out.
 
-    T(X, …) = d | …                        a type, with its constructors; T alone if it takes none
+    T(X, …) = d | …                        a type, with its constructors; T alone if it takes no types
     d ::= c                                a constructor holding nothing
           c(A, …)                          a constructor holding contents of types A, …
-    effect F(X, …) = r : (A, …) → B | …    an effect, with its requests; F alone if it takes none
+    effect F(X, …) = r : (A, …) → B | …    an effect, with its requests; F alone if it takes no types
     n = (p, …) ↦ e | …                     a definition: a function, with its name
 
     parentheses only group: (e) is e, kept in one piece
@@ -895,8 +889,7 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
     each type and each effect is declared once; each constructor belongs to one type, and each
       request to one effect; each defined name is defined once
     a definition can use any of them, even one declared or defined after it
-    in a declaration, every name in a type is a declared type, or one of the declaration's
-      own placeholders
+    in a declaration, every name in a type is a declared type, or one of the declaration's own placeholders
     in a pattern, a name is a constructor if it was declared as one, and otherwise a placeholder
     the placeholders of one case are all different, and none has the name of a defined name or a request
     a placeholder means something in the body of its own case, functions inside it included
@@ -937,18 +930,17 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
 
     A ::= T(A, …)                    a type, filled; T alone if it takes none
           X                          a placeholder for a type
-          (A, …) → B ! E             a function type, and what it may ask; no ! E if it lists none
+          (A, …) → B ! E             a function type, and what it may ask; ! E left out when it lists none
     E ::= {F(A, …), …}               effects, filled; F alone if it takes none
 
 **What a type means**: a type is a set of values.
 
-    a value is of type T(A, …)           when it is built by one of T's constructors, holding
-                                         values of the types declared for its contents,
-                                         with A, … in place of T's placeholders
-    a value is of type (A, …) → B ! E    when, applied to values of types A, …, it never gets stuck,
-                                         makes only requests of the effects in E, with inputs of the
-                                         types they take, and, with each answered by a value of the
-                                         type it is answered with, ends, if it ends, in a value of type B
+    a value is of type T(A, …)           when it is built by one of T's constructors, holding values of the
+                                         types declared for its contents, with A, … in place of T's placeholders
+    a value is of type (A, …) → B ! E    when, applied to values of types A, …, it never gets stuck, makes only
+                                         requests of the effects in E, with inputs of the types they take, and,
+                                         with each answered by a value of the type it is answered with,
+                                         ends, if it ends, in a value of type B
 
     a type that holds itself: a value is of the type when following the definition, as far as
       it can be followed, never finds anything that does not fit
@@ -977,8 +969,7 @@ Since no placeholder shares a name with a constructor, a request or a defined na
 
 **Where steps happen**
 
-    in an application, first in what is applied, until it is a value; then in its inputs,
-      from left to right
+    in an application, first in what is applied, until it is a value; then in its inputs, from left to right
     in data, in its contents, from left to right
     in a request, in its inputs, from left to right
     in a handler, in the expression inside it
