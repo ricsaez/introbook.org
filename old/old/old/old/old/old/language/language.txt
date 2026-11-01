@@ -1,0 +1,328 @@
+LANGUAGE
+
+
+0. WHAT EXISTS
+
+There are only two kinds of things: values and types.
+Every value has a type. Types are values too, so they have a type as well.
+
+  VALUES                                    THEIR TYPES
+    5, "hi"                                   int, str
+    true, zero, succ(zero)                    Bool, Nat
+    identity, make_twice   (functions)        (A : Type) → A → A, ...
+    int, Bool, Nat         (types)            Type
+
+  x : A  means "x has type A".
+
+Every type is one of exactly three kinds:
+
+  function types      A → B                 the type of functions that take an A, give back a B
+  constructed types   Bool, Nat, Point      made by listing constructors (section 3)
+  Type                Type, Type 1, ...     the types of types
+
+So every function's type is an arrow. A function that gives back a function has
+an arrow inside an arrow. eg.
+
+    shout      : str → str                   takes a str, gives back a str
+    repeat     : str → (int → str)           takes a str, gives back a function int → str
+                                             (written str → int → str)
+    make_twice : (A → A) → (A → A)           takes a function, gives back a function
+                                             (with its type input: (A : Type) → (A → A) → A → A)
+
+Claims and proofs (section 5) are not a new kind: a claim is a type, a proof is a value.
+
+Three words used throughout:
+
+  placeholder     a name standing for a value or a type:   x, f, A
+  call            giving a function an input:              f(a)
+  constructor     a value that builds values of a type:    true, zero, succ
+
+1. FUNCTIONS
+
+A function takes one input and gives back a result. The input has a placeholder name. eg.
+
+    def identity(x):         x is the placeholder
+        return x
+
+Calling a function gives the placeholder a value. The result is the body with the
+placeholder replaced by that value; this replacing is all computing is. → means "gives back". eg.
+
+    identity(zero)  →  zero                  x replaced by zero
+
+The input can be a function, and the result can be a function. eg.
+
+    def make_twice(f):       the input f is a function
+        def inner(x):
+            return f(f(x))
+        return inner         the result is the function inner (given back, not called)
+
+    make_twice(succ)  →  inner               with f replaced by succ
+
+So a function of two inputs is a function that takes the first input,
+and gives back a function that takes the second. eg.
+
+    make_twice(succ)(zero)  →  inner(zero)  →  succ(succ(zero))
+
+For readability, two inputs are written together:
+
+    def make_twice(f, x):        is shorthand for   def make_twice(f):
+        return f(f(x))                                  def inner(x):
+                                                            return f(f(x))
+                                                        return inner
+
+    make_twice(succ, zero)       is shorthand for   make_twice(succ)(zero)
+
+
+2. TYPES
+
+(Examples here use Python's int and str; section 3 shows how to build types.)
+
+A type is a kind of value. Everything has one: values, placeholders, and calls. x : A means "x has type A". eg.
+
+    5 : int                  Python:  x: int = 5
+    "hi" : str
+
+A function's type says what it takes and what it gives back.
+A → B means "takes an A, gives back a B". eg.
+
+    len : str → int          Python:  def len(s: str) -> int
+    len("hi")  →  2
+
+In a chain of arrows, everything before the last arrow is an input; the last is the result.
+A → B → C means A → (B → C): takes an A, gives back a function that takes a B. eg.
+
+    repeat : str → int → str             Python:  "ab" * 3
+    repeat("ab")     →  a function int → str
+    repeat("ab")(3)  →  "ababab"
+
+Types are values too, so they have a type: Type. eg.
+
+    int : Type                           int is a type
+    Type : Type 1,  Type 1 : Type 2,  and so on
+    No type is its own type (that would let false claims be proved).
+
+A placeholder has a type too. In def identity(x), what type is x? If we fix one (x : int),
+identity only works on ints, and we'd need another identity for str, and so on.
+Instead, make the type an input too, with a placeholder name A, just as x is a
+placeholder for a value. Since types are values, they can be inputs. eg.
+
+    identity : (A : Type) → A → A        takes a type A, gives back a function A → A
+    identity(int)     →  a function int → int
+    identity(int)(5)  →  5
+
+Type inputs are filled in automatically from the other inputs, so they aren't written. eg.
+
+    def identity(x):             is shorthand for   def identity(A):
+        return x                                        def inner(x):
+                                                            return x
+                                                        return inner
+
+    identity(5)                  is shorthand for   identity(int)(5)       (5 is an int, so A is int)
+
+Another eg., with the function from section 1:
+
+    shout : str → str                    adds "!"
+    make_twice : (A : Type) → (A → A) → A → A
+                 takes a type A, then a function A → A, then an A, gives back an A
+    make_twice(str)(shout)("hi")  →  shout(shout("hi"))  →  "hi!!"
+
+    make_twice(shout)("hi")       is shorthand for   make_twice(str)(shout)("hi")
+                                                     ("hi" is a str, so A is str)
+
+The result type can depend on the input: (x : A) → B, where B mentions x.
+A → B is the case where B doesn't mention the input. eg.
+
+    zeros : (n : int) → (list of n items)
+    zeros(3)  →  [0, 0, 0]               the type guarantees exactly 3 items
+                                         (Python can't say this; its type is just list)
+
+
+3. CONSTRUCTED TYPES (making new types)
+
+So far we used types that already exist (int, str). A new type is made by listing
+its constructors: the only ways to build its values. eg.
+
+    inductive Bool               Bool has exactly two values, and no others
+      true  : Bool
+      false : Bool               Python/Rust: an enum
+
+A constructor can take inputs: you can tell from its type. No arrow (true : Bool) means
+no inputs; it's just a value. An arrow (succ : Nat → Nat) means it takes inputs, one per arrow.
+A constructor with inputs is called like a function, but computes nothing:
+it packages its inputs into a new value, like putting them in a box. eg.
+
+    inductive Nat                the counting numbers
+      zero : Nat                 0
+      succ : Nat → Nat           takes a Nat, gives back a new Nat: the next number
+
+    succ(zero)                   is 1: a new value holding zero; nothing is computed
+    succ(succ(zero))             is 2: holding 1, which holds 0
+
+    Python, with a list as the box:
+        zero = []
+        def succ(n):
+            return [n]                   just wraps n; computes nothing
+
+        succ(succ(zero))  →  [[[]]]      2: two boxes around the empty one
+
+A constructor's type reads like any function type. eg.
+
+    inductive Point                        a position on a grid: one form, holding x and y
+      point : Nat → Nat → Point            takes a Nat (x), then a Nat (y), gives back a Point
+
+    point(1, 2)                            the point at x = 1, y = 2      Python: [1, 2]
+
+    inductive Shape                        a circle or a rectangle: two forms
+      circle    : Nat → Shape              holds 1 number: the radius
+      rectangle : Nat → Nat → Shape        holds 2 numbers: width and height
+
+    circle(5)                              a circle of radius 5           Python: ["circle", 5]
+    rectangle(2, 3)                        a rectangle 2 wide, 3 tall     Python: ["rectangle", 2, 3]
+
+To design a type, ask:
+  1. What different forms can a value take?   Each form becomes one constructor.
+  2. What does each form carry?               That becomes the constructor's inputs.
+
+  eg. Bool:  two forms, carrying nothing.
+      Nat:   two forms; succ carries the number before it.
+      Point: one form, carrying two numbers.
+      Shape: two forms, each carrying numbers.
+
+
+4. FUNCTIONS ON CONSTRUCTED TYPES
+
+Constructors are the only ways to make values (section 3), so every value was made by
+one of them: every Bool is true or false; every Nat is zero or succ(something).
+So a function on it says what to do for each constructor, one line each; this covers
+every possible input. The line that matches how the input was made is the one used. eg.
+
+    # Bool → Bool                        not
+    not_(true)  = false
+    not_(false) = true
+
+    not_(true)  →  false                 the input was built by true, so line 1 is used
+
+If a constructor holds something, the line gives it a placeholder name. This opens the
+box: the placeholder stands for what's inside. eg.
+
+    # Nat → Bool                         n == 0
+    is_zero(zero)    = true              built by zero?  then yes
+    is_zero(succ(k)) = false             built by succ?  then no  (k is what's inside)
+
+    is_zero(succ(zero))  →  false        matches line 2, with k = zero
+
+    # Nat → Nat                          n - 1 (and 0 stays 0)
+    pred(zero)    = zero
+    pred(succ(k)) = k                    give back what's inside the box
+
+    pred(succ(succ(zero)))  →  succ(zero)          k = succ(zero)
+
+A function can have other inputs besides the constructed one. eg.
+
+    # (A : Type) → Bool → A → A → A      if cond: a else: b
+    if_(true,  a, b) = a
+    if_(false, a, b) = b
+
+    if_(true, "yes", "no")  →  "yes"
+
+A line can use the function itself on what's inside the box, since that is smaller.
+Each call is on a smaller value, so it always reaches the end. eg.
+
+    # Nat → Nat → Nat                    m + n
+    add(m, zero)    = m                  m + 0 = m
+    add(m, succ(k)) = succ(add(m, k))    m + (k+1) = (m + k) + 1
+
+    add(2, 2)
+      →  succ(add(2, 1))                 2 is succ(1): line 2, with k = 1
+      →  succ(succ(add(2, 0)))           1 is succ(0): line 2, with k = 0
+      →  succ(succ(2))                   line 1
+      =  4
+
+To write a function on a constructed type:
+  1. Write its type.
+  2. Write one line per constructor of the input, with a blank:   f(constructor) = ?
+     If the constructor holds something, give it a placeholder name: f(succ(k)) = ?
+  3. Fill each blank by answering the question for that one case.
+  4. If you need the answer for what's inside (k), use f(k).
+
+
+5. CLAIMS
+
+Nothing new here: sections 2-4, read a different way.
+
+A type can be read as a claim, and a value of that type as a proof of it.
+A claim is true when you can build a value of it. Claims are constructed types
+(section 3): their constructors are the ways to prove them.
+
+"a = b" is a type with one constructor: a thing equals itself. eg.
+
+    inductive Eq
+      refl : (a : A) → a = a             takes a value a, gives back a proof of a = a
+
+    refl(2) : 2 = 2
+    refl(2) : add(1, 1) = 2              add(1, 1) computes to 2, so this is 2 = 2
+    2 = 3                                no way to build it: refl only makes a = a
+
+"A and B" holds two proofs, like Point holds two numbers. eg.
+
+    inductive And A B
+      intro : A → B → And A B            takes a proof of A, then of B
+
+    intro(refl(2), refl(3)) : (2 = 2) and (3 = 3)
+
+"A or B" has two forms, like Shape: prove either side. eg.
+
+    inductive Or A B
+      left  : A → Or A B                 takes a proof of A
+      right : B → Or A B                 or takes a proof of B
+
+    left(refl(2)) : (2 = 2) or (2 = 3)   the left side is enough
+
+"False" has no constructors, so it has no values: it can never be proved.
+
+    inductive False
+
+A → B reads "A implies B": a function that turns any proof of A into a proof of B.
+It's written like any function in section 4. eg.
+
+    # And A B → A                        if A and B, then A
+    first(intro(a, b)) = a               open the box, give back the proof of A
+                                         (just like get_x(point(x, y)) = x)
+
+(x : A) → B reads "for every x : A, B": a function giving a proof for each x. eg.
+
+    # (n : Nat) → add(n, zero) = n       for every n, n + 0 = n
+    zero_right(n) = refl(n)              add(n, zero) computes to n (add, line 1),
+                                         so the claim is n = n
+
+
+6. ASSUMPTIONS (cannot be built; assumed for classical maths)
+
+  Extensionality   if A implies B and B implies A, then A and B are the same claim
+  Quotients        things can be declared equal when equivalent (1/2 and 2/4 are the same number)
+  Choice           if something exists, one can be picked without saying which;
+                   gives: every claim is either true or false
+
+
+7. NOTATION (shorthand that translates into the above)
+
+  2                        succ(succ(zero))
+  name = value; rest       (a function of name that runs rest), called with value
+  if cond: a else: b       if_(cond, a, b)
+  m + n                    add(m, n)
+  n == 0                   is_zero(n)
+
+
+EXAMPLES
+
+# (A : Type) → (B : Type) → (A → B) → A → B       claim: if A implies B, and A, then B
+def apply(f, x):
+    return f(x)
+
+apply(succ, zero)  →  succ(zero)
+
+# no type: x(x) needs x to be A and A → B at once, so types don't allow it
+def self_app(x):
+    return x(x)
+
+self_app(self_app)  →  self_app(self_app)  →  ...     without types, it never finishes
