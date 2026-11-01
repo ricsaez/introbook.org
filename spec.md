@@ -16,7 +16,8 @@ A program is declarations and definitions, in any order, then one main expressio
 ## Syntax
 
     e ::= x                                 placeholder
-        | c                                 constructor
+        | c                                 constructor holding nothing
+        | c(e, …)                           data: constructor with exactly its contents
         | n                                 defined name
         | (p, …) ↦ e | …                    function written out (one case or more)
         | e(e, …)                           application
@@ -39,27 +40,29 @@ A body extends as far as possible; parentheses only group.
 - In a pattern, a name is a constructor if declared as one, otherwise a placeholder. The placeholders of one case are distinct.
 - **No placeholder has the name of a defined name or a request.** (No placeholder can have a constructor's name, by the previous rule.)
 - In a body, a name means the placeholder of the innermost case around it that binds that name. Otherwise it must be a global name.
-- Arity: the cases of one function all have the same number of patterns. A request is written with its declared number of inputs, in expressions and in handler cases. A pattern `c(p, …)` has as many patterns as `c` holds.
+- Arity, fixed by what is written: the cases of one function all have the same number of patterns. A name written right before parenthesized inputs gets exactly as many as it takes: a defined name, its function's number of inputs; a constructor, its number of contents (in expressions and patterns), and a constructor with contents never appears without them; a request, its declared number (in expressions and handler cases). So `rock(paper)`, `beats(rock)`, `round(rock)` and `round` alone are not expressions.
+- Before §10 the book restricts application to `n(e, …)`; `e(e, …)` arrives in §10. Arity errors and applying a non-function then remain possible only through placeholders, at run time (stuck).
 - In a type declaration, every type name is declared, or one of the declaration's own placeholders. A type may occur in its own constructors' contents, and to the right of an arrow, but never to the left of one (strict positivity).
 
 ## Values
 
-    v ::= c                                 any constructor, alone
+    v ::= c                                 constructor holding nothing
         | c(v₁, …, vₖ)                      c declared holding exactly k ≥ 1 contents
         | n
         | (p, …) ↦ e | …
 
-A constructor that holds contents, written alone, is a function value. Applied to the right number of values it builds data and takes no step.
+Constructors are not functions: data takes no step once its contents are values. Every value is data or a function.
 
 ## Where steps happen
 
     K ::= [ ]
         | K(e, …)
         | v(v, …, K, e, …)
+        | c(v, …, K, e, …)
         | r(v, …, K, e, …)
         | handle K with h | …
 
-Call by value, left to right, with what is applied first. There are no steps under `↦`. Every expression that is not a value has at most one decomposition `K[e₀]` with `e₀` a redex or an unhandled request, so carrying out is deterministic.
+Call by value, left to right, with what is applied first; data's contents left to right. There are no steps under `↦`. Every expression that is not a value has at most one decomposition `K[e₀]` with `e₀` a redex or an unhandled request, so carrying out is deterministic.
 
 `K` handles `r` when some frame `handle K' with h | …` in `K` has a request case for `r`.
 
@@ -98,7 +101,7 @@ The rest, `(y) ↦ handle K[y] with h | …`, reinstalls the handler (deep handl
 
 - **Value.**
 - **Waiting:** `K[r(v⃗)]` where `K` does not handle `r`. The outside answers with a value `v'`, and carrying out goes on from `K[v']`.
-- **Stuck:** not a value, not waiting, and no step applies. This covers: no case matches; the wrong number of inputs; applying data or a constructor that holds nothing; a handler with no value case that matches; a handler that has a case for `r` when none of its cases for `r` matches the inputs (`K` then handles `r`, so the request is not waiting, and it does not pass outward either).
+- **Stuck:** not a value, not waiting, and no step applies. This covers: no case matches; through a placeholder only, the wrong number of inputs, or applying a value that is not a function; a handler with no value case that matches; a handler that has a case for `r` when none of its cases for `r` matches the inputs (`K` then handles `r`, so the request is not waiting, and it does not pass outward either).
 - **Never:** an infinite sequence of steps.
 
 ## What types mean
@@ -107,7 +110,6 @@ Types are definitions of sets of values. Carrying out never uses them, and "`e` 
 
 - `v ∈ T(A⃗)` when `v` is `c(v₁, …, vₖ)` (or `c`, if `c` holds nothing) for a constructor `c` of `T`, with each `vⱼ` in its declared content type, `A⃗` in place of `T`'s placeholders. Recursive types are read as the greatest set closed under this reading: following the definition never finds anything that does not fit. Strict positivity keeps that reading monotone, so the greatest set exists.
 - `v ∈ (A⃗) → B ! Φ` when for all `u⃗` in `A⃗`, `v(u⃗)` never gets stuck and leaves unhandled only requests of effects in `Φ`, with inputs of their declared types. With each request answered by a value of its answer type, it ends, if it ends, in a value of `B`. Divergence is allowed (partial correctness).
-- A constructor `c` declared `c(A⃗)` in `T(X⃗)` is in `(A⃗) → T(X⃗)`, for each choice of the `X⃗`.
 
 ## Where the book says each rule
 
@@ -118,9 +120,9 @@ Types are definitions of sets of values. Carrying out never uses them, and "`e` 
 | patterns, matching, first matching case | §5, §8 |
 | naming rules: shadowing, no placeholder with a global name | §5, §10, §13, §19 |
 | arity, getting stuck | §6, §7 |
-| data, constructors as function values | §8 |
+| data as its own form, `c(e, …)`; arity fixed by what is written | §6, §7, §8 |
 | recursion | §9 |
-| functions written out, closures, substitution under `↦` | §10 |
+| `e(e, …)`, functions written out, closures, substitution under `↦` | §10 |
 | function types | §10, §18 (`! Φ`) |
 | type and effect placeholders | §11, §15 |
 | requests, handlers, the rest | §13 |
@@ -130,6 +132,7 @@ Types are definitions of sets of values. Carrying out never uses them, and "`e` 
 ## Deliberate choices
 
 - Every definition is a function. Names are values; there is no step from a name to its definition.
+- What can be seen in what is written is ruled out by form (arity, applying a constructor); getting stuck is left for what depends on values.
 - Functions written out appear only from §10, where `against` needs one: a definition cannot use another function's placeholders.
 - A handler that has a case for `r` owns `r`. If none of its `r` cases match, carrying out is stuck rather than passing the request outward.
 - The book rewrites some definitions as it goes (`beaten`, `against`, `both`, `Player`). Each rewrite replaces the earlier one, so a finished program has one definition per name.
