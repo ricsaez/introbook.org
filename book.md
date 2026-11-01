@@ -28,33 +28,26 @@ So far, things only sit there. Nothing turns one into another.
 
 ## 2. Functions
 
-A **function** turns things into other things. To say what it does, we say what it gives back for each thing it can be given. Each of these is a **case**:
-
-    (rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock
-
-`↦` reads "gives", and `|` again reads "or": rock gives paper, or paper gives scissors, or scissors gives rock. In each case, what is in parentheses is what the case is for, and what comes after `↦` is its **body**: what the case gives back. This function gives back the hand that beats the one it is given.
-
-To use a function more than once, we give it a name:
+A **function** turns things into other things. As a type is declared with a name, a function is defined with one, and we say what it gives back for each thing it can be given. Each of these is a **case**:
 
     answer = (rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock
 
-This **defines** the name `answer`: from now on, `answer` stands for this function. A name given this way is a **defined name**, and each is defined once.
+`↦` reads "gives", and `|` again reads "or": rock gives paper, or paper gives scissors, or scissors gives rock. In each case, what is in parentheses is what the case is for, and what comes after `↦` is its **body**: what the case gives back. This function gives back the hand that beats the one it is given.
+
+This **defines** the name `answer`: from now on, `answer` stands for this function. A name given this way is a **defined name**, and each is defined once. The name is how the function is used: wherever we want it, we write `answer`.
 
 To use a function, we **apply** it to an **input**, written after it in parentheses:
 
     answer(rock)
 
-This is a question: what does `answer` give back for `rock`? To find out, we **carry it out**, in **steps**:
+This is a question: what does `answer` give back for `rock`? To find out, we **carry it out**, in **steps**. Here one step is enough:
 
     answer(rock)
-        becomes   ((rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock)(rock)
         becomes   paper
 
-In the first step, the name becomes the function it stands for. In the second, the function is applied: its cases are tried in order, and the application becomes the body of the first case that is for `rock`. Nothing is left to work out in `paper`, so `paper` is the answer.
+The cases of `answer` are tried in order, and the application becomes the body of the first case that is for `rock`. Nothing is left to work out in `paper`, so `paper` is the answer.
 
-The parentheses around the function only keep it in one piece. Without them, the input `(rock)` would seem to belong to the last case.
-
-From here on, "comes to" means "becomes, in one step or more". We also skip the step where a name becomes what it stands for, and keep writing the name in its place:
+From here on, "comes to" means "becomes, in one step or more":
 
     answer(rock)      comes to   paper
 
@@ -66,36 +59,38 @@ One more function, which turns each `Bool` into the other:
 
 ## 3. The map
 
-We have now written four kinds of expression:
+We have now written three kinds of expression:
 
-    rock                                 a constructor
-    not                                  a defined name
-    (false) ↦ true | (true) ↦ false      a function
-    not(true)                            an application
+    rock          a constructor
+    not           a defined name
+    not(true)     an application
 
 To describe them all at once, and not just these examples, we use letters that stand for parts of the language. `e` stands for any expression, `c` for any constructor, and `n` for any defined name:
 
     e ::= c                  a constructor
           n                  a defined name
-          (c) ↦ e | …        a function
           e(e)               an application
 
-`::=` reads "is one of", and each line is one **form**. So this says: an expression is a constructor, or a defined name, or a function, or an application. In the form of a function, `| …` means "and more cases like the first, as many as needed": a function has one case or more.
+`::=` reads "is one of", and each line is one **form**. So this says: an expression is a constructor, or a defined name, or an application.
 
 This is the first piece of the map. Its letters are not expressions, constructors or names. Each marks a place where any expression, constructor or name can go.
-
-The map shows something the examples don't. Look at the forms with an `e` inside them. A case's body is an `e`, so a body can be any expression, not just a constructor. An application is `e(e)`, so the function applied can be any expression, and so can its input, including another application:
-
-    answer(answer(rock))
-
-A form with `e` inside it can hold any form, itself included, so forms go inside forms as deep as we like. Four forms combine without end.
-
-Parentheses can go around any expression to keep it in one piece. They only group: they are not a form of their own. A case's body reaches as far as it can, so a function that is written out and then applied goes in parentheses, as in section 2.
 
 What we write is declarations and definitions, then one expression to carry out. Using `T` for the name of a type:
 
     T = c | …                declares the type T, with its constructors
-    n = e                    defines n as e
+    n = (c) ↦ e | …          defines n as a function, with its cases
+
+In a definition, `| …` means "and more cases like the first, as many as needed": a function has one case or more.
+
+A function has no form of its own among the expressions. It is written only in a definition, which gives it a name, and from then on the name stands for it. That is why a defined name is a form of expression: it is how a function is used. In `not(true)`, the function applied is `not`.
+
+The map shows something the examples don't. Look at the places with an `e` in them. A case's body is an `e`, so a body can be any expression, not just a constructor. An application is `e(e)`, so its input can be any expression, another application included:
+
+    answer(answer(rock))
+
+A form with `e` inside it can hold any form, itself included, so forms go inside forms as deep as we like. Three forms combine without end.
+
+Parentheses can go around any expression to keep it in one piece. They only group: they are not a form of their own.
 
 Most sections from here on add to the map.
 
@@ -114,16 +109,15 @@ The answer to the answer to rock: paper, then scissors.
 An expression with nothing left to work out is a **value**. Using `v` for any value:
 
     v ::= c                  a constructor
-          (c) ↦ e | …        a function
+          n                  a defined name
 
-A function is a value even though its bodies are expressions: nothing happens inside a function until it is applied. Only then is a body carried out, and only the body of the case that is used.
+A defined name is a value even though the bodies of its function are expressions: nothing happens inside a function until it is applied. Only then is a body carried out, and only the body of the case that is used.
 
 Here is all of carrying out so far. "`e` becomes `e'`" means one step, and `e'` is what `e` becomes:
 
-    n                    becomes   what n is defined as
-    ((c) ↦ e | …)(v)     becomes   the body of the first case for v
+    n(v)     becomes   the body of the first case in n's definition for v
 
-Where a step happens: in an application, first in the function being applied, until it is a value; then in its input, until that is a value; then the application takes its own step. So at each point there is one next step at most, and carrying out never has a choice to make.
+Where a step happens: in an application, first in what is applied, until it is a value; then in its input, until that is a value; then the application takes its own step. So at each point there is one next step at most, and carrying out never has a choice to make.
 
 But writing a case for every input soon says the same thing more than once.
 
@@ -143,7 +137,7 @@ The case is for any hand, and its body uses `a` where the hand given goes. When 
         comes to   answer(answer(rock))
         comes to   scissors
 
-A placeholder is like the letters on the map, but written in the language. On the map, `e` marks a place for any expression; in a body, `a` marks a place for whatever the function is given. A placeholder means something only in the body of its own case, functions written inside that body included. A name in a case's parentheses is a constructor if it was declared as one, and a placeholder otherwise. A placeholder can have the same name as a defined name; then, in its body, the name means the placeholder. So in a body, every name stands for one thing.
+A placeholder is like the letters on the map, but written in the language. On the map, `e` marks a place for any expression; in a body, `a` marks a place for whatever the function is given. A placeholder means something only in the body of its own case. A name in a case's parentheses is a constructor if it was declared as one, and a placeholder otherwise, and a placeholder may not have the name of a defined name. So in a body, every name stands for one thing.
 
 What a case is for is now a **pattern**, one of two things. Using `p` for any pattern and `x` for any placeholder:
 
@@ -156,19 +150,18 @@ A value **matches** a pattern when the pattern describes it. Cases are tried in 
 
     isRock(paper)     comes to   false
 
-On the map, a placeholder is a new form of expression, and a case's pattern can now be any pattern, in a function and so in a value:
+On the map, a placeholder is a new form of expression, and a case's pattern can now be any pattern:
 
     e ::= x                  a placeholder                                 new
           c
           n
-          (p) ↦ e | …        a function                                    (c) widened to (p)
           e(e)
-    v ::= (p) ↦ e | …        a function                                    widened
+    n = (p) ↦ e | …          defines n as a function                       (c) widened to (p)
 
 And applying puts the input in place:
 
-    ((p) ↦ e | …)(v)     becomes   the body of the first case that v matches,
-                                   with v in place of its placeholder, if the pattern is one
+    n(v)     becomes   the body of the first case in n's definition that v matches,
+                       with v in place of its placeholder, if the pattern is one
 
 ## 6. Several inputs
 
@@ -200,32 +193,36 @@ A function can also take no inputs at all, and is then applied to none. Its body
 
     later()           comes to   paper
 
+Here, asking later gives the same answer as asking now. Section 15 shows where it makes a difference.
+
 On the map, functions and applications now take any number of inputs. In `p, …`, the `…` means "any number of them, even none", and likewise in `e, …` and `v, …`:
 
-    e ::= (p, …) ↦ e | …     a function                                    widened
-          e(e, …)            an application                                widened
-    v ::= (p, …) ↦ e | …     a function                                    widened
+    e ::= e(e, …)            an application                                widened
+    n = (p, …) ↦ e | …       defines n as a function                       widened
 
 The cases of one function all have the same number of patterns: that is how many inputs it takes. Applying it puts each input in place:
 
-    ((p, …) ↦ e | …)(v, …)     becomes   the body of the first case whose patterns v, … match,
-                                         with each value in place of its placeholder
+    n(v, …)     becomes   the body of the first case in n's definition whose patterns v, … match,
+                          with each value in place of its placeholder
 
 ## 7. Getting stuck
 
 So far we have only applied functions to what they were made for. What if a function is given something it has no case for?
 
     answer(true)
-        becomes   ((rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock)(true)
 
-No case matches `true`, so no step applies, yet something is left to work out. Carrying out is **stuck**. It gets stuck in the same way when what is applied is not a function, or a function is given the wrong number of inputs:
+No case of `answer` matches `true`, so no step applies, yet something is left to work out. Carrying out is **stuck**. It gets stuck in the same way when what is applied is not a function, or a function is given the wrong number of inputs:
 
     rock(paper)         stuck: rock is not a function
-    beats(rock)         stuck once beats becomes its function: it takes two inputs, and is given one
+    beats(rock)         stuck: beats takes two inputs, and is given one
 
 In each, a value is somewhere it doesn't fit, and there is no way on. That is what stuck means in general: something is left to work out, but no step applies.
 
-A function needn't have a case for everything. `(rock) ↦ paper` is a function, and it gets stuck only if it is given something other than `rock`.
+A function needn't have a case for everything:
+
+    onlyRock = (rock) ↦ paper
+
+`onlyRock` is a function, and it gets stuck only if it is given something other than `rock`.
 
 So carrying out can end in two ways: in a value, which is an answer, or stuck, which is not. That `answer` is only ever given a hand, and so never gets stuck, would be a claim about what we write: it could be true or false, and would need checking. Claims are what this book leaves out. Here, getting stuck is simply one of the ways carrying out can end.
 
@@ -277,8 +274,8 @@ There is no new form of expression: `round(rock, paper)` is already an applicati
 
 `v` is inside its own new form, so data can hold data. `p` is inside its own new form, so patterns nest. And since a pattern can now hold placeholders deep inside it, applying puts in place of each placeholder what it matched:
 
-    ((p, …) ↦ e | …)(v, …)     becomes   the body of the first case whose patterns v, … match,
-                                         with what each placeholder matched in its place
+    n(v, …)     becomes   the body of the first case in n's definition whose patterns v, … match,
+                          with what each placeholder matched in its place
 
 ## 9. Repeating
 
@@ -329,7 +326,7 @@ Nothing makes a definition use itself on something smaller, so repeating need no
 
 So carrying out has a third way to end, which is not to end at all: it can go on forever.
 
-Repeating added nothing to the map. It is two uses of forms already there: a type's name inside the contents of its own constructors, and a name inside its own definition. The map already allows both. The `A`s in `c(A, …)` can be any type, the one being declared included, and the `e` in `n = e` can be any expression, `n` included.
+Repeating added nothing to the map. It is two uses of forms already there: a type's name inside the contents of its own constructors, and a name inside its own definition. The map already allows both. The `A`s in `c(A, …)` can be any type, the one being declared included, and a body in `n = (p, …) ↦ e | …` can be any expression, `n` included.
 
 ## 10. Functions as values
 
@@ -341,18 +338,34 @@ A function given a function:
 
     twice(answer, rock)       comes to   scissors
 
-`twice` takes a function and a hand, and applies the function twice. In the body, the placeholder `f` stands for a function, so it can be applied. As with any input, `answer` is worked out before it goes in: what goes in place of `f` is the function `answer` stands for.
+`twice` takes a function and a hand, and applies the function twice. In the body, the placeholder `f` stands for a function, so it can be applied. `answer` is a value, so it goes in as it is: `twice(answer, rock)` becomes `answer(answer(rock))`.
 
-A function that gives back a function:
+A function that gives back a function needs more. `against` is to take a hand, `a`, and give back a test: does a hand beat `a`? With definitions alone, each test needs a definition of its own:
+
+    againstRock = (b) ↦ beats(b, rock)
+    againstPaper = (b) ↦ beats(b, paper)
+    againstScissors = (b) ↦ beats(b, scissors)
+    against = (rock) ↦ againstRock | (paper) ↦ againstPaper | (scissors) ↦ againstScissors
+
+This says the same thing three times, as `beaten` did before placeholders, and a function like it that was given a `Nat` would need a test for every number, with no end. A placeholder can't fix it this time. A definition stands alone: its bodies can use its own placeholders and no others, so no test defined on its own can use the `a` that `against` was given.
+
+So a function can also be **written out**, without a name, wherever an expression can go. Written out inside a body, it can use the placeholders of the case around it, since a placeholder means something in the body of its own case, functions written inside that body included:
 
     against = (a) ↦ (b) ↦ beats(b, a)
 
     against(rock)             comes to   (b) ↦ beats(b, rock)
     against(rock)(paper)      comes to   true
 
-`against(rock)` is a test: does this hand beat rock? Since a body reaches as far as it can, the body of the outer function is the whole inner function. And `rock` went in place of `a` inside the inner function: an input goes wherever its placeholder is used, even where nothing is carried out yet.
+A body reaches as far as it can, so the body of the outer function is the whole inner function. A function written out is a value, like a defined name: nothing happens inside it until it is applied. Still, `rock` went in place of `a` inside the inner function: an input goes wherever its placeholder is used, even where nothing is carried out yet. So `against(rock)` gives back a test made from `rock`, one no definition had to write.
 
-An inner function's placeholder can also have the same name as an outer one's. Then, inside the inner function, the name means the nearer placeholder, its own, and the outer input does not go there:
+Applying a function written out takes the same step as applying a name, with the function's own cases:
+
+    ((rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock)(rock)
+        becomes   paper
+
+as `answer(rock)` does. The parentheses keep the function in one piece: since a body reaches as far as it can, without them the input `(rock)` would seem to belong to the last case. What a definition adds to a function is only its name, so that it can be used again, by other definitions and by itself.
+
+An inner function's placeholder can have the same name as an outer one's. Then, inside the inner function, the name means the nearer placeholder, its own, and the outer input does not go there:
 
     ((a) ↦ (a) ↦ a)(rock)            comes to   (a) ↦ a
     ((a) ↦ (a) ↦ a)(rock)(paper)     comes to   paper
@@ -361,7 +374,7 @@ Data holding a function. A player plays by a rule: given the hand the other play
 
     Player = player((Hand) → Hand)
 
-`(Hand) → Hand` reads "from `Hand` to `Hand`". It is a type too, a **function type**: the functions that, given a hand, give back a hand. More exactly, a value is of this type when, applied to any hand, it never gets stuck, and if carrying out ends, it ends in a hand. `answer` is one, and so is `beaten`. `(rock) ↦ paper` is not: given `paper`, it gets stuck.
+`(Hand) → Hand` reads "from `Hand` to `Hand`". It is a type too, a **function type**: the functions that, given a hand, give back a hand. More exactly, a value is of this type when, applied to any hand, it never gets stuck, and if carrying out ends, it ends in a hand. `answer` is one, and so is `beaten`. `onlyRock` is not: given `paper`, it gets stuck.
 
     next = (player(f), a) ↦ f(a)
 
@@ -371,11 +384,19 @@ This player always shows what would have beaten the last hand.
 
 A pattern can take data apart, but nothing takes a function apart: no pattern looks inside one. A function given a function can apply it, and nothing else.
 
-On the map, a function type is a new form of type. Its parts are types, so it can hold any type, a function type included:
+On the map, a function written out is a new form of expression, and a new value. Applying it puts each input in place, as applying a defined name does:
+
+    e ::= (p, …) ↦ e | …     a function, written out                       new
+    v ::= (p, …) ↦ e | …     a function, written out                       new
+
+    ((p, …) ↦ e | …)(v, …)     becomes   the body of the first case whose patterns v, … match,
+                                         with what each placeholder matched in its place
+
+A function type is a new form of type. Its parts are types, so it can hold any type, a function type included:
 
     A ::= (A, …) → B         a function type                               new
 
-The map of expressions needed nothing new. Every combination here was already on it. An input can be any expression, and so can a body, so either can be a function; the types in `c(A, …)` can be function types; and the applied part of `e(e, …)` can itself be an application, as in `against(rock)(paper)`. Every value is data or a function, counting a constructor written without its contents as a function: `round` is of type `(Hand, Hand) → Round`. So every place a value can go holds one or the other:
+The rest needed nothing new. An input can be any expression, and so can a body, so either can be a function; the types in `c(A, …)` can be function types; and the applied part of `e(e, …)` can itself be an application, as in `against(rock)(paper)`. Every value is data or a function, counting a defined name, and a constructor written without its contents, as functions: `round` is of type `(Hand, Hand) → Round`. So every place a value can go holds one or the other:
 
     (Hand) → Bool                      takes data, gives data               isRock
     (Hand) → (Hand) → Bool             takes data, gives a function         against
@@ -419,7 +440,7 @@ That is the whole core. Every value is data or a function, and each is made one 
 | data     | a constructor, holding values     | a pattern, which takes it apart  |
 | function | cases, each a pattern and a body  | applying it to inputs            |
 
-Two kinds of name refer to values: a placeholder stands for what a case was given, and a defined name stands for its definition, which may use the name itself.
+Two kinds of name refer to values: a placeholder stands for what a case was given, and a defined name stands for its function, whose definition may use the name itself.
 
 A type says what a kind of thing is: which data, built how, or which functions, giving back what. It is a definition, and nothing in carrying out uses it.
 
@@ -482,7 +503,7 @@ A **handler** answers it. It goes around the expression that asks:
           (outcome) ↦ outcome
         | (opponent(), k) ↦ k(scissors)
 
-A handler has cases, like a function. The first is for the value the expression comes to in the end: here it gives that value back as it is. The second is for the request `opponent()`, and its body answers `scissors`. In a handler's case, a request's name stands for that request, as a constructor's name does in a pattern. To see how the answer is given, we need to know what `k` is.
+A handler has cases, like a function. The first is for the value the expression comes to in the end: here it gives that value back as it is. The second is for the request `opponent()`, and its body answers `scissors`. In a handler's case, a request's name stands for that request, as a constructor's name does in a pattern, and like a defined name, it is never the name of a placeholder. To see how the answer is given, we need to know what `k` is.
 
 When the request is made, the expression around it is waiting for an answer: `beats(rock, opponent())` is waiting for a hand, to put where `opponent()` is. That waiting expression is **the rest** of the computation, and it can be written as a function. Given an answer, it puts it where the request was, and goes on, with the handler still around it:
 
@@ -521,7 +542,7 @@ The steps:
                                       when the next thing to work out in e is a request r(v, …),
                                       and no handler in e around that request has a case for r
 
-Otherwise, the expression inside a handler takes its steps as usual. A request that a handler has no case for passes it by, to a handler further out.
+Otherwise, the expression inside a handler takes its steps as usual, and a request's inputs, like an application's, are worked out first, from left to right. A request that a handler has no case for passes it by, to a handler further out.
 
 Requests and handlers are made one way and used one way, like data and functions:
 
@@ -597,7 +618,7 @@ A handler holds the memory:
                               | (get(), k) ↦ ((m) ↦ k(m)(m))
                               | (put(b), k) ↦ ((m) ↦ k(unit)(b)))(start)
 
-`keep` takes a computation kept for later, `task`, and a starting score, `start`. Its handler doesn't give back an answer directly: it gives back a function waiting for the score so far, `m`. The `(start)` at the end gives it the starting score; the parentheses before it keep the handler in one piece, so it can be applied. Its cases read:
+`keep` takes a computation kept for later, `task`, and a starting score, `start`. The task has to be kept for later. An input is worked out before it goes in, so a task given directly would make its requests before `keep`'s handler was around it, and nothing would answer them. Kept for later, it starts only at `task()`, inside the handler. Its handler doesn't give back an answer directly: it gives back a function waiting for the score so far, `m`. The `(start)` at the end gives it the starting score; the parentheses before it keep the handler in one piece, so it can be applied. Its cases read:
 
 - when the computation comes to a value: given the score `m`, give back that value together with `m`;
 - when asked for the score: given `m`, answer `m`, and go on with the score still `m`;
@@ -781,16 +802,16 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
     d ::= c                                a constructor holding nothing
           c(A, …)                          a constructor holding contents of types A, …
     effect F(X, …) = r : (A, …) → B | …    an effect, with its requests; F alone if it takes no types
-    n = e                                  a definition
+    n = (p, …) ↦ e | …                     a definition: a function, with its name
 
-**Names**: each type and each effect is declared once; each constructor belongs to one type, and each request to one effect; each defined name is defined once. A definition can use any of them, even one declared or defined after it. In a declaration, every name in a type is a declared type, or one of the declaration's own placeholders. In a pattern, a name is a constructor if it was declared as one, and otherwise a placeholder; the placeholders of one case are all different. A placeholder means something in the body of its own case, functions inside it included. In a body, a name means the nearest placeholder of that name: the one of the innermost case around it that has one. If no case around it has one, the name is a constructor, a request or a defined name, and must be one of these. Putting a value in place of a placeholder puts it wherever the name means that placeholder. The cases of one function all have the same number of patterns, and a request is written with as many inputs as it is declared with.
+**Names**: each type and each effect is declared once; each constructor belongs to one type, and each request to one effect; each defined name is defined once. A definition can use any of them, even one declared or defined after it. In a declaration, every name in a type is a declared type, or one of the declaration's own placeholders. In a pattern, a name is a constructor if it was declared as one, and otherwise a placeholder; the placeholders of one case are all different, and none has the name of a defined name or a request. A placeholder means something in the body of its own case, functions inside it included. In a body, a name means the nearest placeholder of that name: the one of the innermost case around it that has one. If no case around it has one, the name is a constructor, a request or a defined name, and must be one of these. Putting a value in place of a placeholder puts it wherever the name means that placeholder; since no placeholder shares a name with a constructor, a request or a defined name, the names inside that value keep their meaning wherever it goes. The cases of one function all have the same number of patterns, and a request is written, in an expression or in a handler's case, with as many inputs as it is declared with.
 
 **Expressions**
 
     e ::= x                          a placeholder
           c                          a constructor
           n                          a defined name
-          (p, …) ↦ e | …             a function: its cases, tried in order
+          (p, …) ↦ e | …             a function written out: its cases, tried in order
           e(e, …)                    an application
           r(e, …)                    a request
           handle e with h | …        a handler
@@ -806,7 +827,8 @@ These letters describe the language: `e` an expression, `v` a value, `x` a place
 
     v ::= c                          a constructor
           c(v, …)                    data: c holding values, as many as it holds
-          (p, …) ↦ e | …             a function
+          n                          a defined name: the function it is defined as
+          (p, …) ↦ e | …             a function written out
 
 **Types**
 
@@ -830,9 +852,9 @@ Types are definitions, and nothing in carrying out uses them. That something is 
 
 **Steps**
 
-    n                          becomes   what n is defined as
     ((p, …) ↦ e | …)(v, …)     becomes   the body of the first case whose patterns v, … match,
                                          with what each placeholder matched in its place
+    n(v, …)                    becomes   the same, with the cases of n's definition
     handle v with h | …        becomes   the body of the first case for values that v matches,
                                          with what its placeholder matched in its place
     handle e with h | …        becomes   the body of the first case for r whose patterns v, … match,
@@ -858,7 +880,8 @@ The rest is `e` with a placeholder `y`, a name used nowhere in `e` or in the han
 |--------------------------------------|----------------------------------------------------|
 | an `Enum` class                      | a type, listing its constructors                   |
 | `True`, `False`, an `Enum`'s members | constructors                                       |
-| `def`, `lambda`                      | functions                                          |
+| `def`                                | a definition: a function with a name               |
+| `lambda`, a `def` inside a function  | a function written out, using the names around it  |
 | `if`, `match`                        | cases                                              |
 | tuples, `dataclass`                  | constructors holding contents                      |
 | `list[Hand]`                         | a memory holding a `List(Hand)`, at a place of its own |
