@@ -59,7 +59,7 @@ Suppose we want the hand that rock beats. That is scissors: the result of using 
     worse : (Hand) → Hand
     worse = (a) ↦ better(better(a))
 
-`a` is a **variable**. It matches any value and names that value inside its case. Given `paper`, we put `paper` wherever this `a` occurs:
+`a` is a **variable**: it wasn't declared as a constructor, so in a pattern it matches any value and names that value inside its case. Given `paper`, we put `paper` wherever this `a` occurs:
 
     worse(paper)
         becomes   better(better(paper))
@@ -341,7 +341,7 @@ This is a list of two hands. `cons` holds the first item and the remaining list.
     size(cons(rock, cons(paper, empty)))
         comes to   succ(succ(zero))
 
-In a signature, an undeclared capitalised name such as `Item` also stands for an arbitrary type. Use the same choice everywhere that name occurs in that signature. `size` works for lists of hands, rounds, or any other kind of value. Types guide our reading; they aren't extra inputs to the function.
+In a signature, an undeclared capitalised name such as `Item`, written where a type goes, stands for an arbitrary type. Use the same choice everywhere that name occurs in that signature. `size` works for lists of hands, rounds, or any other kind of value. Types guide our reading; they aren't extra inputs to the function.
 
 We can transform every item in a list:
 
@@ -360,7 +360,7 @@ Two independent types can be left open too:
 
     Pair(First, Second) = pair(First, Second)
 
-`pair(win, zero)` is a `Pair(Outcome, Nat)`. The declaration's variables belong only to that declaration. Types can nest: `List(List(Hand))` is a list of lists, and `List((Hand) → Hand)` is a list of rules.
+`pair(win, zero)` is a `Pair(Outcome, Nat)`. The declaration's type variables belong only to that declaration. Their names must be different, and must not reuse a declared type or effect name. Types can nest: `List(List(Hand))` is a list of lists, and `List((Hand) → Hand)` is a list of rules.
 
 The declaration shape is now:
 
@@ -431,6 +431,8 @@ The same idea applies here. Each place for a type can hold another function type
 
 These shapes say where the pieces fit. Matching, application and the order of evaluation say what happens when we use them. A program consists of its declarations and definitions, followed by an expression to work out.
 
+These pieces are enough to describe any computable transformation of data. Next we will let a computation ask for something while it runs: a hand someone chooses, for example.
+
 ## 8. Requests
 
 So far, we have chosen every hand in the program. To let a person choose, we need a way to ask:
@@ -486,6 +488,40 @@ A function type now has this shape:
     cons(better, cons(human, empty))
 
 Its type is `List((Hand) → Hand ! {Console})`. The function type describes inputs, results, and requests that may be left for something else to answer. If those requests receive answers of their declared types, the function must avoid getting stuck and, if it finishes, give a result of its stated type.
+
+### Asking now or later
+
+We can ask a person for a hand, then make a rule that always gives that hand:
+
+    pick : () → ((Hand) → Hand) ! {Console}
+    pick = () ↦ always(read())
+
+Calling `pick()` asks once. If the person answers paper, it gives back `(b) ↦ paper`. Applying that rule asks nothing: the hand is already chosen.
+
+Parentheses group a type just as they group an expression. Here they keep the returned rule's type, `((Hand) → Hand)`, together. The `! {Console}` outside those parentheses belongs to the call that makes the rule.
+
+To return a rule that asks each time it is used:
+
+    askLater : () → ((Hand) → Hand ! {Console})
+    askLater = () ↦ human
+
+Calling `askLater()` gives back `human` without asking. Calling the returned rule asks for a hand. The effect is inside the parentheses because it belongs to that rule. Each `! {…}` belongs to the nearest preceding arrow in the same group; without parentheses, arrows extend to the right.
+
+### Leaving the requests open
+
+`each` applies a function to every item in a list. That function can be `human` too:
+
+    each(human, cons(rock, cons(paper, empty)))
+
+This asks for two hands, from left to right, and collects the answers. If the person answers scissors and then rock, the result is `cons(scissors, cons(rock, empty))`.
+
+The earlier signature described `each` with a function that asks nothing. We can give the same definition a wider description:
+
+    each : ((From) → To ! {Asks}, List(From)) → List(To) ! {Asks}
+
+`Asks` leaves a list of effects open, just as `From` and `To` leave types open. Choose the same list everywhere it occurs in this signature. For `human`, it is `Console`; for `better`, it can be empty. `each` may ask whatever the function it uses may ask.
+
+An undeclared capitalised name used as an entry in an effect list stands for a whole list of effects. It can be empty or contain several effects. We can put known effects alongside it, as in `{Console, Asks}`. Their order doesn't matter. If the same effect occurs more than once, with the same type arguments, it counts once; different type arguments for the same effect name cannot be combined. These are descriptions, not extra inputs to the function.
 
 ## 9. Handlers
 
@@ -596,7 +632,22 @@ A score changes as rounds are played. We can describe each change with a score b
     recordWith(draw, succ(zero))
         comes to   pair(draw, succ(zero))
 
-To record another round, we take the score from the first result and pass it into the next call. Every function on the way must take that score and return the new one, even if its only job is to pass it along.
+To record two rounds, we take the score from the first result and pass it into the second call:
+
+    recordBothWith : (Round, Round, Nat) → Pair(List(Outcome), Nat)
+    recordBothWith = (first, second, total) ↦
+        ((pair(a, afterFirst)) ↦
+            ((pair(b, afterSecond)) ↦
+                pair(cons(a, cons(b, empty)), afterSecond))
+            (recordWith(judge(second), afterFirst)))
+        (recordWith(judge(first), total))
+
+Read from the first call: judge the first round and record it with `total`. Call its outcome `a` and its score `afterFirst`. Record the second round with that score, then give back both outcomes and the final score.
+
+    recordBothWith(round(paper, rock), round(rock, rock), zero)
+        comes to   pair(cons(win, cons(draw, empty)), succ(zero))
+
+`recordBothWith` only passes the score along. A function that uses it would have to pass the score too. Every function between the place the score starts and the places it changes would need to carry it in and out.
 
 Requests let us mention the score where it is actually used:
 
@@ -605,7 +656,7 @@ Requests let us mention the score where it is actually used:
 
 An effect can leave types open, as a data type can. `State(Nat)` keeps a number; `State(Hand)` keeps a hand. `get()` asks for the current value. `put(a)` asks to replace it with `a` and is answered with `unit`.
 
-In one effect list, each effect name has one choice of type arguments. Listing both `State(Nat)` and `State(Hand)` wouldn't distinguish their requests: both use the same `get` and `put` names.
+In one effect list, each effect name has one choice of type arguments. Combining `State(Nat)` and `State(Hand)` isn't allowed: both use the same `get` and `put` names, so their requests couldn't be distinguished.
 
 To do one thing, then return another:
 
@@ -630,14 +681,14 @@ And record two rounds:
 
 A handler supplies the score. It passes the current score from one request to the next, but writes that passing in one place:
 
-    keep : (() → Result ! {State(Stored)}, Stored) → Pair(Result, Stored)
+    keep : (() → Result ! {State(Stored), Asks}, Stored) → Pair(Result, Stored) ! {Asks}
     keep = (task, start) ↦
         (handle task() with
               (answer) ↦ ((current) ↦ pair(answer, current))
             | (get(), next) ↦ ((current) ↦ next(current)(current))
             | (put(value), next) ↦ ((current) ↦ next(unit)(value)))(start)
 
-The signature says: give `keep` a task and an initial stored value; it gives back the task's result together with the final stored value.
+The signature says: give `keep` a task and an initial stored value; it gives back the task's result together with the final stored value. It answers the state requests itself. Other requests, described by `Asks`, pass through it.
 
 The task is a function with no inputs. That keeps its work waiting until `task()` runs inside the handler. Given the work directly, we would run it before the handler was there.
 
@@ -669,6 +720,12 @@ The handler never inspects the stored value. The same definition keeps a hand:
     keep(() ↦ then(put(paper), get()), rock)
         comes to   pair(paper, paper)
 
+The task can also ask to show its outcome:
+
+    keep(() ↦ then(show(record(win)), get()), zero)
+
+`keep` answers the score requests. `show(win)` passes through it to the outside. Once that is answered with `unit`, the expression comes to `pair(succ(zero), succ(zero))`. Here `Stored` is `Nat`, `Result` is `Nat`, and `Asks` is `Console`.
+
 Different effects can appear in the same expression. Each request still finds the nearest handler with a case for its name:
 
     handle (handle then(show(win), get()) with
@@ -681,7 +738,44 @@ Different effects can appear in the same expression. Each request still finds th
 
 The inner handler answers `show`. The request for `get` passes through it to the outer handler. The result is the number supplied there.
 
-One `keep` supplies one store. Two nested handlers for the same `get` and `put` names don't create two independently addressable stores: the nearer handler answers both names. Separate stores need distinct request names or a place value passed with each request.
+### Two scores, two places
+
+One `keep` supplies one store. Two nested handlers for the same `get` and `put` names don't give us two stores we can choose between: the nearer handler answers both names. To keep a score for each player, give each score a **place**, and include that place in each request:
+
+    Place = mine | yours
+
+    effect Scores = look : (Place) → Nat
+                  | change : (Place, Nat) → Unit
+
+`look(mine)` asks for my score; `change(yours, zero)` asks to set yours to zero. Adding a point works for either place:
+
+    bump : (Place) → Unit ! {Scores}
+    bump = (place) ↦ change(place, succ(look(place)))
+
+The handler keeps both scores. Each case returns a function waiting for the two current values, `a` and `b`:
+
+    keepScores : (() → Result ! {Scores, Asks}, Nat, Nat) → Result ! {Asks}
+    keepScores = (task, first, second) ↦
+        (handle task() with
+              (answer) ↦ ((a, b) ↦ answer)
+            | (look(mine), next) ↦ ((a, b) ↦ next(a)(a, b))
+            | (look(yours), next) ↦ ((a, b) ↦ next(b)(a, b))
+            | (change(mine, value), next) ↦ ((a, b) ↦ next(unit)(value, b))
+            | (change(yours, value), next) ↦ ((a, b) ↦ next(unit)(a, value)))(first, second)
+
+Looking answers with the selected score and keeps both scores as they were. Changing answers `unit` and replaces only the selected score. At a final value, the handler gives back the task's answer.
+
+    keepScores(() ↦ then(bump(mine), pair(look(mine), look(yours))), zero, zero)
+        comes to   pair(succ(zero), zero)
+
+A place is a value, so we can pass it to a function or hold it in data. Two names can refer to the same place:
+
+    keepScores(() ↦ ((samePlace) ↦ then(bump(samePlace), look(mine)))(mine), zero, zero)
+        comes to   succ(zero)
+
+`samePlace` was given `mine`. Adding through `samePlace` changes what looking through `mine` finds: both refer to the same score. The scores live in the handler; a place tells it which score we mean.
+
+This uses the same requests, patterns, functions and data as before. Here the two places are fixed. More places can be represented with numbers and their stored values kept in a list.
 
 ## 12. Continuing later
 
@@ -733,7 +827,7 @@ Two generators can play each other. `turns` asks each for a hand, and `joinMoves
                     cons(round(a, b), turns(left, first, second))
               | (left, first, second) ↦ empty
 
-The new functions use no new forms. They hold two continuations and choose when to apply each one.
+The new functions use no new forms. `first` and `second` hold what remains of each player, and `turns` chooses when to continue each one.
 
     rocks : () → Unit ! {Give}
     rocks = () ↦ then(give(rock), rocks())
@@ -757,6 +851,7 @@ Here are the pieces together. The letters stand for parts of the language:
 | `c`, `r` | A constructor, a request |
 | `T`, `F` | A declared type's name, an effect's name |
 | `A`, `B`, `X` | Types, and a variable for a type |
+| `E`, `S` | An entry in an effect list, and a variable for a list of effects |
 
 `e, …` means any number of expressions, including none, and likewise for the other letters. `| …` means one or more alternatives. A declared type or effect with no type arguments is written without parentheses; so is a constructor with no contents.
 
@@ -768,7 +863,7 @@ Here are the pieces together. The letters stand for parts of the language:
     n : A                                 a function's type, when written
     n = (p, …) ↦ e | …                    its definition
 
-A program gives declarations and definitions, then an expression to work out. A signature describes a function's inputs, results and possible requests. It can describe a particular use of a more general function. Omitting it doesn't change evaluation.
+A program gives declarations and definitions, then an expression to work out. A signature describes a function's inputs, results and possible requests. It can describe a particular use of a more general function. Omitting it doesn't change evaluation. Writing it doesn't make it true either: whether a function fits its signature is a claim that can be checked, and checking is outside the medium.
 
 ### Expressions, values and patterns
 
@@ -796,13 +891,22 @@ Every place marked `e` holds an expression. A handler can be in a function body,
 
     A ::= T(A, …)                         a declared type, filled with types
           X                               a type variable
-          (A, …) → B ! {F(A, …), …}       a function type
+          (A, …) → B ! {E, …}             a function type
 
-Leave out `! {…}` when there are no effects. Type variables in a declaration belong to that declaration. In a signature, they stand for arbitrary types chosen consistently throughout that signature. A type or effect takes as many type arguments as its declaration lists. Each effect name occurs at most once in a single effect list.
+    E ::= F(A, …)                         a declared effect, filled with types
+          S                               a variable for a list of effects
+
+Parentheses can group any type: `(A)` means the same type as `A`. Leave out `! {…}` when there are no effects. Each effect suffix belongs to the nearest preceding arrow in the same group. Without grouping, the result after an arrow extends to the right.
+
+Type variables in a declaration belong to that declaration. Their names are distinct and cannot reuse declared type or effect names. Every type name used in a declaration must name a declared type or one of that declaration's type variables; every effect named there must be declared. A type or effect takes as many type arguments as its declaration lists.
+
+In a signature, an undeclared capitalised name in a type position stands for an arbitrary type. Used as a whole entry in an effect list, it stands for an arbitrary list of effects. One name cannot stand for both. These choices belong to that signature, and each name has the same choice throughout it.
+
+An effect-list variable can stand for no effects, one, or several. Fill it with its chosen list alongside any named effects. Order doesn't matter, and repeated effects with the same type arguments count once. Each effect name must have a single choice of type arguments in the combined list. Effect-list variables occur only in signatures.
 
 A value belongs to a declared type when it is made with one of that type's constructors and its contents belong to the types declared for them. Fill the declaration's type variables with the types supplied to it.
 
-A function belongs to a function type when it takes the indicated number of inputs and, given values of the indicated types, avoids getting stuck. Its unanswered requests must belong to the listed effects and have inputs of their declared types. For every sequence of answers of the declared result types, any final result must belong to `B`. The computation may also continue forever.
+A function belongs to a function type when it takes the indicated number of inputs and, given values of the indicated types, behaves as follows however its requests are answered, provided each answer has the type its request declares: it never gets stuck, every request it leaves unanswered belongs to a listed effect and has inputs of the declared types, and any final result belongs to `B`. The computation may also continue forever.
 
 Recursive types include all values consistent with these descriptions, including values that keep unfolding through functions. Following a recursive path through declarations must never put the recursive type in a function input or a request-answer type. This also applies when the path goes through a type argument in another declaration.
 
@@ -820,7 +924,7 @@ A variable is in scope in its case's body, including functions inside it. The ne
 
 A constructor or request is written with its declared number of contents or inputs, also in patterns. A defined name written directly with inputs is given the number its function takes. All cases of a function have that same number of patterns. When applying a value obtained through an expression, a mismatch gets stuck.
 
-Parentheses group an expression. A function body extends as far to the right as it can; use parentheses to end it before applying the function or placing it in a larger expression. The result after a type arrow also extends to the right.
+Parentheses group an expression or a type. A function body extends as far to the right as it can; use parentheses to end it before applying the function or placing it in a larger expression. The result after a type arrow also extends to the right unless parentheses group it.
 
 ### Working out an expression
 
