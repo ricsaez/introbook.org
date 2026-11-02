@@ -33,7 +33,7 @@ Paper beats rock, scissors beat paper, and rock beats scissors. We can put those
            | (paper) ↦ scissors
            | (scissors) ↦ rock
 
-`better` is a **function**. Each line after `=` is a **case**: what it is given, followed by what it gives back. `↦` reads “gives”.
+`better` is a **function** with three **cases**, separated by `|`. Each case is what it is given, followed by what it gives back. `↦` reads “gives”.
 
 The line above the definition gives its **function type**. It reads “better goes from a hand to a hand”. `→` describes the kinds of inputs and results; `↦` gives the answer in a particular case.
 
@@ -341,7 +341,7 @@ This is a list of two hands. `cons` holds the first item and the remaining list.
     size(cons(rock, cons(paper, empty)))
         comes to   succ(succ(zero))
 
-In a signature, an undeclared capitalised name such as `Item`, written where a type goes, stands for an arbitrary type. Use the same choice everywhere that name occurs in that signature. `size` works for lists of hands, rounds, or any other kind of value. Types guide our reading; they aren't extra inputs to the function.
+In a signature, an undeclared capitalised name such as `Item`, written where a type goes, stands for an arbitrary type. Use the same choice everywhere that name occurs in that signature. The signature describes the function for every choice: `size` works for lists of hands, rounds, or any other kind of value. Types guide our reading; they aren't extra inputs to the function.
 
 We can transform every item in a list:
 
@@ -360,7 +360,7 @@ Two independent types can be left open too:
 
     Pair(First, Second) = pair(First, Second)
 
-`pair(win, zero)` is a `Pair(Outcome, Nat)`. The declaration's type variables belong only to that declaration. Their names must be different, and must not reuse a declared type or effect name. Types can nest: `List(List(Hand))` is a list of lists, and `List((Hand) → Hand)` is a list of rules.
+`pair(win, zero)` is a `Pair(Outcome, Nat)`. The declaration's type variables belong only to that declaration. Their names must be different, and must not reuse a declared type's name. Types can nest: `List(List(Hand))` is a list of lists, and `List((Hand) → Hand)` is a list of rules.
 
 The declaration shape is now:
 
@@ -435,6 +435,10 @@ These pieces are enough to describe any computable transformation of data. Next 
 
 ## 8. Requests
 
+Everything so far has been **saying**. Each step rewrites part of an expression into something that means the same: `worse(paper)` and `rock` are two ways of writing one hand. Computing can also be pictured another way, as steps that change a memory kept beside the program. That is **doing**. The two pictures compute the same things, but some ideas are natural only as doing: waiting for a person, keeping a score that changes, giving up partway.
+
+The medium keeps saying underneath and brings doing back on top. It adds a new form only when an idea can't be said **locally** with the forms already there: either not at all, or only by changing parts of the program far from where the idea is used. Waiting for a person is the first such idea.
+
 So far, we have chosen every hand in the program. To let a person choose, we need a way to ask:
 
     Unit = unit
@@ -443,6 +447,12 @@ So far, we have chosen every hand in the program. To let a person choose, we nee
                    | show : (Outcome) → Unit
 
 `Console` is an **effect**, declared by listing its **requests**. `read` takes no input and asks to be answered with a hand. `show` takes an outcome to display. Its answer is `unit`, the only value of `Unit`: there is nothing useful to give back, only something done.
+
+An effect declaration has this shape:
+
+    effect F = r : (A, …) → B | …
+
+`F` stands for an effect's name, and `r` for a request's name. Each request gives the types of its inputs and, after `→`, the type of its answer.
 
     show(result(read(), rock))
 
@@ -459,7 +469,7 @@ These are ordinary expressions with one new form inside them:
 
     r(e, …)
 
-`r` stands for a request's name. Its inputs are worked out from left to right, just like inputs to a function. Each request belongs to one effect and takes the number of inputs in its declaration.
+Its inputs are worked out from left to right, just like inputs to a function. Each request belongs to one effect and takes the number of inputs in its declaration.
 
 ### Saying what a function may ask
 
@@ -481,7 +491,7 @@ A function type now has this shape:
 
     (A, …) → B ! {F(A, …), …}
 
-`F` stands for an effect's name. Some effects take types, as we will see with memory. With none, write just `Console`. With no effects, leave out the whole `! {…}` part.
+Some effects take types, as we will see with memory. With none, write just `Console`. With no effects, leave out the whole `! {…}` part.
 
 “May ask” includes not asking. So `better` also fits `(Hand) → Hand ! {Console}`. We can keep rules and people in one list:
 
@@ -647,7 +657,7 @@ Read from the first call: judge the first round and record it with `total`. Call
     recordBothWith(round(paper, rock), round(rock, rock), zero)
         comes to   pair(cons(win, cons(draw, empty)), succ(zero))
 
-`recordBothWith` only passes the score along. A function that uses it would have to pass the score too. Every function between the place the score starts and the places it changes would need to carry it in and out.
+`recordBothWith` only passes the score along. A function that uses it would have to pass the score too. Every function between the place the score starts and the places it changes would need to carry it in and out. The core can say a changing score, but not locally: one small idea changes every function on the way. That is the kind of idea requests are for.
 
 Requests let us mention the score where it is actually used:
 
@@ -655,6 +665,12 @@ Requests let us mention the score where it is actually used:
                          | put : (Stored) → Unit
 
 An effect can leave types open, as a data type can. `State(Nat)` keeps a number; `State(Hand)` keeps a hand. `get()` asks for the current value. `put(a)` asks to replace it with `a` and is answered with `unit`.
+
+The effect declaration shape is now:
+
+    effect F(X, …) = r : (A, …) → B | …
+
+The types of the requests can use the effect's type variables, which follow the same rules as a data type's. An effect with no type variables is written without parentheses, like `Console`.
 
 In one effect list, each effect name has one choice of type arguments. Combining `State(Nat)` and `State(Hand)` isn't allowed: both use the same `get` and `put` names, so their requests couldn't be distinguished.
 
@@ -698,7 +714,7 @@ Every case returns a function waiting for the current score:
 - At `get()`: answer with the score and continue with the same score.
 - At `put(value)`: answer `unit` and continue with `value` as the score.
 
-The `(start)` at the end supplies the first score. The two applications in `next(current)(current)` have different jobs. The first answers the request. The second supplies the score to the function returned by the continued handler.
+The `(start)` at the end supplies the first score; the parentheses around the handler keep it out of the last case's body. The two applications in `next(current)(current)` have different jobs. The first answers the request. The second supplies the score to the function returned by the continued handler.
 
     keep(() ↦ recordBoth(round(paper, rock), round(rock, rock)), zero)
         comes to   pair(cons(win, cons(draw, empty)), succ(zero))
@@ -812,7 +828,9 @@ The player is infinite, but each request for a move reaches one hand. This is a 
 
 `Moves` also shows a recursive type containing a function. A `gave` holds a hand and a function that can produce more `Moves`. Such a sequence can keep unfolding indefinitely; it needn't eventually reach `done`.
 
-Recursive types must describe the same kind consistently as we follow them. In this language, a recursive occurrence may be in data contents or in a function's result, but not in a function's input. That rule applies through other type declarations too. For example, `Moves` is allowed, while `Test = test((Test) → Outcome)` isn't. Request-answer types count as inputs supplied from outside, so recursive paths through them are excluded as well.
+A recursive type is defined in terms of itself, so the definition has to settle. For `Moves` it does: the more values count as `Moves`, the more functions count as `(Unit) → Moves`, so the two grow together. Compare `Test = test((Test) → Outcome)`. The more values count as `Test`s, the more inputs a `(Test) → Outcome` must accept without getting stuck, so fewer functions count, and fewer values are `Test`s. Counting more makes fewer, and the definition never settles.
+
+So a recursive occurrence may be in data contents or in a function's result, but not in a function's input. That rule applies through other type declarations too. Request-answer types count as inputs supplied from outside, so recursive paths through them are excluded as well.
 
 ### Taking turns
 
@@ -906,15 +924,17 @@ An effect-list variable can stand for no effects, one, or several. Fill it with 
 
 A value belongs to a declared type when it is made with one of that type's constructors and its contents belong to the types declared for them. Fill the declaration's type variables with the types supplied to it.
 
-A function belongs to a function type when it takes the indicated number of inputs and, given values of the indicated types, behaves as follows however its requests are answered, provided each answer has the type its request declares: it never gets stuck, every request it leaves unanswered belongs to a listed effect and has inputs of the declared types, and any final result belongs to `B`. The computation may also continue forever.
+A function belongs to a function type when it takes the indicated number of inputs and, given values of the indicated types, behaves as follows however its requests are answered, provided each answer has the type its request declares: it never gets stuck, every request it leaves unanswered belongs to a listed effect and has inputs of the declared types, and any final result belongs to `B`. The computation may also continue forever. For an effect that takes types, read its requests with the listed type arguments filled in: under `State(Nat)`, `put` takes a `Nat` and `get` is answered with one.
 
-Recursive types include all values consistent with these descriptions, including values that keep unfolding through functions. Following a recursive path through declarations must never put the recursive type in a function input or a request-answer type. This also applies when the path goes through a type argument in another declaration.
+A function fits a signature with variables when it belongs to the type made by every choice of them, for types and effect lists alike. `size` fits `(List(Item)) → Nat` because it belongs to `(List(Hand)) → Nat`, `(List(Round)) → Nat`, and every other choice.
+
+Recursive types include all values consistent with these descriptions, including values that keep unfolding through functions. Following a recursive path through declarations must never put the recursive type in a function input or a request-answer type: there, counting more values would make fewer values count, and the definition would never settle. This also applies when the path goes through a type argument in another declaration.
 
 Types describe values. They do not themselves take evaluation steps, and type signatures don't add steps to programs.
 
 ### Names and grouping
 
-Each global name has one declaration or definition. Each constructor belongs to one type declaration, and each request to one effect declaration. Types and effects, including their type variables, start with capitals; names used in expressions start without capitals.
+Each global name has one declaration or definition, and a defined function has at most one signature. Each constructor belongs to one type declaration, and each request to one effect declaration. Types and effects, including their type variables, start with capitals; names used in expressions start without capitals.
 
 A definition can use any defined name, including itself or a name defined later. A type declaration can refer to itself or other declared types, subject to the recursive-type restriction above.
 
@@ -924,7 +944,7 @@ A variable is in scope in its case's body, including functions inside it. The ne
 
 A constructor or request is written with its declared number of contents or inputs, also in patterns. A defined name written directly with inputs is given the number its function takes. All cases of a function have that same number of patterns. When applying a value obtained through an expression, a mismatch gets stuck.
 
-Parentheses group an expression or a type. A function body extends as far to the right as it can; use parentheses to end it before applying the function or placing it in a larger expression. The result after a type arrow also extends to the right unless parentheses group it.
+Parentheses group an expression or a type. A case body, in a function or a handler, extends as far to the right as it can; use parentheses to end it before applying the function or handler, or placing it in a larger expression. The result after a type arrow also extends to the right unless parentheses group it.
 
 ### Working out an expression
 
@@ -951,3 +971,13 @@ With no handler for a request, evaluation waits for the outside. Its answer repl
 | A request | An operation asks with inputs | A handler supplies a response and controls continuation |
 
 Names let functions refer to themselves and to one another. Types make the kinds of contents, inputs and results visible. Every larger example in the book combines these pieces: a list repeats a data shape, a match repeats a computation, state passes a value between requests, and a generator keeps the rest of a computation for later.
+
+### Why these pieces
+
+Functions alone could already compute anything; even hands and numbers can be written as functions. The core gives data its own form anyway, so that it can be seen.
+
+Beyond the core, a form is added only when an idea can't be said locally with what is already there. Saying alone can't wait for an answer from outside, and it could say a changing score only by passing it through every function on the way. So requests and handlers bring doing back on top of saying. Nothing else needed a form of its own: errors, search, state, generators and taking turns are all written *in* the medium with those pieces, not added *to* it.
+
+Types are on a different axis. They say what kinds of things there are, and don't change what any program does.
+
+So when you meet something new, whether a feature of another language or a precise idea of your own, ask what data, what functions and what requests it involves, what kinds of things they are, and how they are combined.
