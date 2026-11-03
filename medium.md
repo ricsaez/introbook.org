@@ -1,1076 +1,1233 @@
-# The Medium
+# The medium
 
-This book builds a language from nothing, one piece at a time. Each piece is added when we want to say something that the pieces before it can’t, and each comes with examples. Most examples are about one game, rock, paper, scissors. Piece by piece, we will write the whole game: who wins a round, how many rounds a player won, strategies that play each other, a player at the keyboard, and a score that changes as the game goes on.
+This is a small language for describing computations. We will build it around one game, rock, paper, scissors: choosing hands, playing rounds, keeping score, and asking a person to play.
 
-## 0. Steps
-
-You already know a language that works the way this one does: arithmetic.
-
-```
-(2 + 3) × 4
-```
-
-This is an expression: something written that says something. It says a number, though not directly. To find out which, we work it out, one step at a time:
-
-```
-(2 + 3) × 4
-becomes 5 × 4
-becomes 20
-```
-
-Each step replaces one part with something simpler that says the same: 2 + 3 and 5 are the same number. When nothing is left to work out, as in 20, the expression is a value. It says what it says directly. Notice the order. × can’t be worked out until both its sides are numbers, so 2 + 3 goes first. A step needs values to work with, so the parts of an expression are worked out before the whole.
-
-Our language works the same way: one step at a time, each replacing one part, until a value is left. What is different is what the parts are. Arithmetic comes with numbers, + and × built in. Our language comes with nothing built in, not even numbers. We make every kind of thing ourselves, and every way of working things out.
-
-### Writing about a language
-
-We will also need to write about the language, not only in it. To talk about many expressions at once, every sum, say, without choosing one, we use a placeholder: a letter that marks a place where any expression can go.
-
-```
-e + e
-```
-
-e is never written in arithmetic. It is written about arithmetic. Filling each place with an expression gives a real one: 2 + 3, or (2 + 3) + 4.
-
-With placeholders, three lines describe every expression of arithmetic:
-
-```
-e ::= a number
-e + e
-e × e
-```
-
-::= reads “is one of”, and each line is a form: one shape an expression can have. An expression is a number, or two expressions with + or × between them. Parentheses only group: they keep an expression in one piece. Each e can be any expression, made by any of the forms, so three lines describe expressions of every size. (2 + 3) × 4 is e × e, with 2 + 3 in the first place and 4 in the second. Arithmetic also lets us write names inside it, for numbers not yet chosen:
-
-```
-square(a) = a × a
-```
-
-a is a variable: a name written in the language itself, for a value not yet chosen. Applying the function chooses it, and puts the value wherever a is:
-
-```
-square(3)
-becomes 3 × 3
-becomes 9
-```
-
-A placeholder and a variable both stand for something not yet chosen, but they live in different places. A placeholder, like e, is written about the language, and stands for any expression. A variable, like a, is written in the language, and stands for a value.
-
-As we build our language, we keep a map of it: its forms, written with placeholders, and below them, its rules. The map grows with each section, and at the end it is the whole language. Its placeholders are single letters, and the examples never use those letters as names, so a letter on the map is always a placeholder.
-
-## Part one: saying
+Examples show how the pieces combine. Then a short shape collects the possibilities, with any restrictions beside them. When a shape changes, we show it again; the others stay as they were.
 
 ## 1. Things
 
-Our language starts empty. First we need something to talk about. We make a kind of thing by listing every thing of that kind:
+First, we need the game's three hands:
 
-```
-Hand = rock | paper | scissors
-```
+    Hand = rock | paper | scissors
 
-| reads “or”. This declares a type, Hand: a hand is rock, or paper, or scissors, and nothing else. rock, paper and scissors are constructors: names that stand for themselves, and for nothing more. A type’s name is written with a capital letter, and a constructor’s without.
+This reads: a hand is rock, paper or scissors. `Hand` is a **type**: it tells us what kind of thing we mean. The names on the right are **constructors**. For now, each names a different thing.
 
-A round of the game ends in one of three ways, so here is another type:
+A round also has an outcome:
 
-```
-Outcome = win | lose | draw
-```
+    Outcome = win | lose | draw
 
-A constructor is the simplest expression. There is nothing to work out in rock, so it is also a value. Each type is declared once, and each constructor belongs to one type only: win is an Outcome, and nothing else.
+A hand is one of three choices. An outcome is one of three results. The names change; the shape stays the same:
 
-On the map, T stands for any type’s name, c for any constructor, e for any expression and v for any value. | … reads “or more like the one before, as many as needed”. Each rule is tagged with what it is about:
+    T = c | …
 
-```
-T = c | … a type, with its constructors
-e ::= c a constructor
-v ::= c a constructor
-names each type is declared once, and each constructor belongs to one type
-```
+`T` stands for a type's name, and `c` for a constructor. `| …` means we can list more constructors. These letters describe the shape; they aren't names in the game.
 
-So far, an expression and a value are the same thing: a constructor. That changes next.
+Each type is declared once, and each constructor belongs to one declaration. Types start with a capital letter; constructors don't.
+
+A constructor can be written on its own, like `rock` or `win`. That is an **expression**, and it is already a **value**: nothing needs working out. With `e` for an expression and `v` for a value:
+
+    e ::= c
+    v ::= c
+
+`::=` reads “has one of these shapes”. At this point, an expression can only be a constructor.
 
 ## 2. Functions
 
-Things that only stand for themselves don’t do anything. We want to relate them: for each hand, the hand that beats it. That is a function, and we write it as cases: for each thing it can be given, what it gives back.
+Paper beats rock, scissors beat paper, and rock beats scissors. We can put those three answers into one rule:
 
-```
-better = (rock) ↦ paper
-| (paper) ↦ scissors
-| (scissors) ↦ rock
-```
+    better : (Hand) → Hand
+    better = (rock) ↦ paper
+           | (paper) ↦ scissors
+           | (scissors) ↦ rock
 
-↦ reads “gives”. In each case, what is in parentheses is the pattern: what the case is for. What comes after ↦ is the body: what the case gives back. better = … defines the name better: from now on, it stands for this function.
+`better` is a **function** with three **cases**, separated by `|`. Each case is what it is given, followed by what it gives back. `↦` reads “gives”.
 
-square was written with ×, which arithmetic already knew. Our language knows nothing yet, so better lists its answers, one case for each hand. Every function in our language is written this way, by cases. To use a function, we apply it to an input, written after it in parentheses. Applying takes one step: the application becomes the body of the first case whose pattern the input matches. A constructor matches only itself.
+The line above the definition gives its **function type**. It reads “better goes from a hand to a hand”. `→` describes the kinds of inputs and results; `↦` gives the answer in a particular case.
 
-```
-better(rock)
-becomes paper
-```
+The input and result can have different types. This function gives the outcome of playing a hand against rock:
 
-paper is a value, so it is the result. Working out an expression, step after step, until no step is left, is carrying it out.
+    againstRock : (Hand) → Outcome
+    againstRock = (rock) ↦ draw
+                | (paper) ↦ win
+                | (scissors) ↦ lose
 
-An input can be any expression. As in arithmetic, it is worked out before it goes in:
+`better` takes a hand and gives a hand. `againstRock` takes a hand and gives an outcome.
 
-```
-better(better(rock))
-becomes better(paper)
-becomes scissors
-```
+To use a function, put an input after its name. We write `>>` for one step:
 
-Comes to means “becomes, in one step or more”: better(better(rock)) comes to scissors. The hand that beats the hand that beats rock is scissors, and scissors is the hand that rock beats. So a function that gives the hand each hand beats can be written with better:
+    better(rock)
+        >> paper
 
-```
-worse = (rock) ↦ better(better(rock))
-| (paper) ↦ better(better(paper))
-| (scissors) ↦ better(better(scissors))
-worse(paper)
-becomes better(better(paper))
-becomes better(scissors)
-becomes rock
-```
+This is **applying** the function. We find the first case that matches the input, and replace the application with that case's answer. A constructor matches itself: rock matches rock.
 
-Its bodies are applications. Nothing in a body is worked out until the function is applied, and then only the body of the case that is used. A definition can use the names defined before it, as worse uses better. What if a function is given something it has no case for?
+`better(rock)` and `paper` are both expressions. Only `paper` is already a value: `better(rock)` still needs a step.
 
-```
-better(win) no case of better matches win
-```
+The input can itself be something to work out:
 
-Something is left to work out, but no step applies. Carrying out is stuck. So carrying out can end in two ways: in a value, which is the result, or stuck.
+    better(better(rock))
+        >> better(paper)
+        >> scissors
 
-Some things can’t be written at all. Only a function can be applied, so rock(paper) is not an expression. And a function is used only by applying it, so better on its own is not an expression either. What we write, all together, is a program: declarations and definitions, then one expression to carry out. On the map, n stands for any defined name, and p for any pattern. A line marked widened replaces an earlier line, and allows more:
+The inner application goes first. Once it gives us `paper`, the outer one can use it. This is how we combine functions: the result of one becomes the input of another. The type helps us see why this combination works: `better` gives back the same kind of thing it takes.
 
-```
-n = (p) ↦ e | … a definition: n stands for a function, with its cases
-p ::= c a constructor: matches only itself
-e ::= n(e) an application
-n(v) becomes the body of the first case in n's definition whose pattern v matches
-writing a program is declarations and definitions, then one expression to carry out
-names each type is declared once, and each constructor belongs to one type;
-each defined name is defined once widened
-names a definition can use the names defined before it
-order a step needs values: in n(e), e is worked out first
-order nothing inside a function is worked out until it is applied
-ends in a value: the result
-ends stuck: something is left to work out, but no step applies
-```
+The two functions can combine too:
 
-## 3. Variables
+    againstRock(better(rock))
+        >> againstRock(paper)
+        >> win
 
-worse says the same thing three times: whatever the hand, give better of better of it. To say it once, a pattern can be a variable: a name that matches any value, and stands, in the body, for the value it matched.
+`better` gives back a hand, which is what `againstRock` takes. The result of the whole expression is an outcome.
 
-```
-worse = (a) ↦ better(better(a))
-worse(paper)
-becomes better(better(paper))
-comes to rock
-```
+We have added functions and application. `n` stands for a defined function's name, and `A` and `B` for declared types:
 
-Applying puts the input wherever the variable is, as square(3) put 3 wherever a was. This worse replaces the one in section 2: a program defines each name once, so when this book defines a name again, the new definition is the one used from then on.
+    n : (A) → B               a function's type
+    n = (c) ↦ c | …           its cases
 
-Who wins a round? That is a question about two hands. A function can take several inputs, separated by commas, and then each case has a pattern for each:
+    e ::= c                   a constructor
+        | n(e)                an application
 
-```
-result = (rock, scissors) ↦ win
-| (scissors, paper) ↦ win
-| (paper, rock) ↦ win
-| (rock, rock) ↦ draw
-| (paper, paper) ↦ draw
-| (scissors, scissors) ↦ draw
-| (a, b) ↦ lose
-```
+`A` and `B` may be the same or different types. Each `c` is a separate place: `(rock) ↦ paper` uses different constructors. A function has one or more cases, each taking one input. Each function name has one definition and is distinct from constructor names.
 
-The inputs match a case when each matches its own pattern. Cases are tried in order, and the last one, all variables, matches whatever the cases before it left: it means “otherwise”. Rock beats scissors, scissors beat paper, paper beats rock, and the same hands draw. Otherwise, the first player loses. Without variables, result would need nine cases.
+The `e` inside `n(e)` can be either form again: a constructor or another application. This allows nesting as deep as we need. For now, a function name appears only in an application, and each case gives a constructor directly. Values are still just constructors.
 
-```
-result(paper, rock)
-becomes win
-result(rock, paper)
-becomes lose
-```
+The nested steps have a shape too. If the selected cases give `n₂(c₁) >> c₂` and `n₁(c₂) >> c₃`, then:
 
-In the second, only the last case matches.
+    n₁(n₂(c₁)) >> n₁(c₂) >> c₃
 
-Several inputs are worked out one at a time, from left to right:
+The subscripts distinguish places, not necessarily different functions or constructors. `>>` describes a step; it isn't part of a program.
 
-```
-result(better(rock), better(paper))
-becomes result(paper, better(paper))
-becomes result(paper, scissors)
-becomes lose
-```
+### Naming an input and working out an answer
 
-So there is never more than one next step.
+Suppose we want the hand that rock beats. That is scissors: the result of using `better` twice. The same works for every hand, so let's give it a name:
 
-The cases of one function all have the same number of patterns. That is how many inputs the function takes, and its name is always given that many: result(rock) is not an expression. A function can even take no inputs, and be applied to none:
+    worse : (Hand) → Hand
+    worse = (a) ↦ better(better(a))
 
-```
-later = () ↦ worse(rock)
-later()
-becomes worse(rock)
-comes to scissors
-```
+`a` is a **variable**: it wasn't declared as a constructor, so in a pattern it matches any value and names that value inside its case. Given `paper`, we put `paper` wherever this `a` occurs:
 
-later holds its body back until it is applied. Here, asking later gives the same answer as asking now. In part two, it won’t.
+    worse(paper)
+        >> better(better(paper))
+        >> better(scissors)
+        >> rock
 
-A few rules keep every name clear. In a pattern, a name is a constructor if it was declared as one, and otherwise a variable. The variables of one case are all different: in (a, a), we couldn’t tell which input a is. None has the name of a defined name, or we couldn’t tell whether it meant the function or the value matched. And a variable means something only in the body of its own case. So in a body, each name means one thing: a variable of its case, a constructor, or a defined name.
+The part before `↦` is the **pattern**: it matches the input. The expression after `↦` is the **body**. The body waits until we apply the function, and only the case we use is worked out.
 
-On the map, x stands for any variable. p, … means any number of patterns, even none, and likewise for the other letters:
+Naming an input doesn't make us use it. This function accepts a hand and always gives rock:
 
-```
-n = (p, …) ↦ e | … a definition: n stands for a function, with its cases widened
-p ::= x a variable: matches any value
-e ::= x a variable
-n(e, …) an application widened
-n(v, …) becomes the body of the first case in n's definition whose patterns
-v, … match, with what each variable matched in its place widened
-names the cases of one function all have the same number of patterns
-names every name is given as many as it takes: a defined name,
-as many inputs as its function takes
-names in a pattern, a name is a constructor if it was declared as one,
-and otherwise a variable
-names the variables of one case are all different,
-and none has the name of a defined name
-names a variable means something only in the body of its own case
-names in an expression, a name is a variable of the case it is in,
-or else a constructor or a defined name
-order a step needs values: in n(e, …), the inputs are worked out first,
-from left to right widened
-```
+    alwaysRock : (Hand) → Hand
+    alwaysRock = (a) ↦ rock
 
-## 4. Data
+    alwaysRock(paper)
+        >> rock
 
-A round is two hands, one for each player. So far a value is one thing: one hand, one outcome. A constructor can hold things, its contents, of the types written after it:
+We can also give the input back unchanged. This function changes rock to the hand that beats it, and keeps any other hand:
 
-```
-Round = round(Hand, Hand)
-```
+    adjust : (Hand) → Hand
+    adjust = (rock) ↦ better(rock)
+           | (a) ↦ a
 
-A Round is round holding two hands. A constructor that holds things is always written with them, as many as it holds:
+    adjust(rock)
+        >> better(rock)
+        >> paper
+    adjust(scissors)
+        >> scissors
 
-```
-round(paper, rock)
-```
+The first case has a constructor as its pattern and an application as its body. In the second, `a` names the input and the body gives it back. Both cases could match rock; trying them in order makes the second mean “otherwise”.
 
-This looks like an application, but it isn’t one. round is not a function, and nothing happens:
+These examples cover the available kinds of case:
 
-round(paper, rock) is already a value, a round in which the first player showed paper and the second rock. Values built by constructors are data. Contents are worked out before they go in, from left to right, like inputs:
+| Pattern | Constructor as body | Variable as body | Application as body |
+|---|---|---|---|
+| A constructor | `(rock) ↦ paper` | No variable is named by this pattern | `(rock) ↦ better(rock)` |
+| A variable | `(a) ↦ rock` | `(a) ↦ a` | `(a) ↦ better(better(a))` |
 
-```
-round(better(rock), rock)
-becomes round(paper, rock)
-```
+An application's input can now be a constructor, a variable, or another application. We have seen all three: `better(rock)`, `better(a)` inside `worse`, and `better(better(a))`.
 
-To use data, we take it apart with a pattern: the constructor again, with a pattern for each of its contents. Each can be fixed, or left open with a variable:
+A case can now name its input and work out its answer. The definition, pattern and expression shapes change:
 
-```
-round(paper, rock) fixed: matches only this round
-round(rock, a) the second hand left open: any round where the first showed rock
-round(a, b) both left open: any round
-a the whole round left open
-```
+    n = (p) ↦ e | …
 
-A value matches a pattern when it is built the same way, except where the pattern has a variable: there, any value matches, and the variable stands for it.
+    p ::= c | x
+    e ::= c
+        | x                   if this case's pattern is x
+        | n(e)
 
-```
-judge = (round(a, b)) ↦ result(a, b)
-judge(round(paper, rock))
-becomes result(paper, rock)
-becomes win
-```
+`p` stands for a pattern and `x` for a variable. Every `e` place, whether a body or an input, can use any of the three forms. A variable must come from this case's pattern, even inside nested applications. A constructor pattern names no variable; outside a case there is none to use.
 
-round(a, b) matched round(paper, rock), with paper as a and rock as b. A body can build data too. The same round, seen from the other player’s side:
+For now, a body can use function names already defined. A variable's name must differ from constructor names and defined function names. The rule for application is the same: work out the input, then use the first matching case. Its body may now need further steps, as `worse` and `adjust` show.
 
-```
-flip = (round(a, b)) ↦ round(b, a)
-flip(round(paper, rock))
-becomes round(rock, paper)
-```
+Matching can fail. `better(win)` gets **stuck**: `win` is a value, but none of the cases accepts it. The type line helps us see the mismatch. Writing a type doesn't change how the cases work.
 
-Round uses Hand, declared before it: a declaration can use the types declared before it. A constructor that holds nothing is written without parentheses: rock, never rock(). So a constructor on its own is data too, holding nothing, and the form c grows into c(e, …).
+### Several inputs
 
-On the map, A stands for any type:
+To find who wins a round, we need two hands:
 
-```
-T = c(A, …) | … a type, with its constructors and the types each holds;
-c alone if it holds nothing widened
-A ::= T a type, by its name
-e ::= c(e, …) data: c with its contents widened from c
-v ::= c(v, …) data: c holding values widened from c
-p ::= c(p, …) matches data built by c, whose contents match p, …
-widened from c
-names every name is given as many as it takes: a defined name, as many inputs
-as its function takes; a constructor, as many contents as it holds,
-and none means no parentheses widened
-names a declaration can use the types declared before it
-order a step needs values: the inputs of an application, and the contents
-of data, are worked out first, from left to right widened
-```
+    result : (Hand, Hand) → Outcome
+    result = (rock, scissors) ↦ win
+           | (scissors, paper) ↦ win
+           | (paper, rock) ↦ win
+           | (rock, rock) ↦ draw
+           | (paper, paper) ↦ draw
+           | (scissors, scissors) ↦ draw
+           | (a, b) ↦ lose
+
+Each input matches its own pattern. The first three cases are wins for the first player; the next three are draws. The last case accepts anything left over, so it means “otherwise”.
+
+    result(paper, rock)       >>   win
+    result(rock, paper)       >>   lose
+
+Several inputs are worked out from left to right:
+
+    result(better(rock), better(paper))
+        >> result(paper, better(paper))
+        >> result(paper, scissors)
+        >> lose
+
+A function can take any number of inputs, even none:
+
+    later : () → Hand
+    later = () ↦ better(rock)
+
+    later()
+        >> better(rock)
+        >> paper
+
+With no inputs, we still have a body waiting to be used. Its application is what starts it.
+
+Each pattern place can independently hold a constructor or a variable. A practice rule can use all four combinations for two inputs:
+
+    practice : (Hand, Hand) → Hand
+    practice = (rock, rock) ↦ paper
+             | (rock, b) ↦ b
+             | (a, rock) ↦ a
+             | (a, b) ↦ better(a)
+
+With two rocks, it chooses paper. With just one rock, it keeps the other hand. Otherwise it chooses the hand that beats the first. The cases are still tried in order.
+
+Only the number of inputs changes:
+
+    n : (A, …) → B
+    n = (p, …) ↦ e | …
+
+    e ::= c
+        | x                   if named by this case's patterns
+        | n(e, …)
+
+A comma followed by `…` means any number of these places, including none. Each input is an expression, so a call can mix constructors, available variables and other applications. Every case of one function has the same number of patterns, and the function takes that many inputs.
+
+The variables in one case must have different names. In `(a, a)`, the same name would be given two inputs. To match two rocks, write `(rock, rock)`, as above.
+
+## 3. Data and patterns
+
+A round needs two hands. We can keep them together:
+
+    Round = round(Hand, Hand)
+
+A `Round` is made with `round`, holding two hands:
+
+    round(paper, rock)
+
+The first player chose paper, and the second chose rock. This is already a value. The constructor holds the two hands together. Values built with constructors are **data**.
+
+To use those hands, write the same shape as a pattern:
+
+    judge : (Round) → Outcome
+    judge = (round(a, b)) ↦ result(a, b)
+
+    judge(round(paper, rock))
+        >> result(paper, rock)
+        >> win
+
+`round(a, b)` takes the round apart: `a` names its first hand, and `b` its second. A body can put data together again:
+
+    flip : (Round) → Round
+    flip = (round(a, b)) ↦ round(b, a)
+
+    flip(round(paper, rock))
+        >> round(rock, paper)
+
+A constructor has one place for each thing it holds. A constructor that holds nothing, like `rock`, is written without parentheses.
+
+Each content can itself be something to work out. We work out the contents from left to right before the data is a value:
+
+    round(better(rock), rock)
+        >> round(paper, rock)
+
+Each place in a pattern can be fixed or left open too. `round(rock, a)` fixes the first hand and leaves the second open. It matches `round(rock, paper)`, with `paper` as `a`, but doesn't match `round(paper, rock)`. `round(a, b)` leaves both hands open.
+
+Data can hold data. A record can say that nothing was played, hold a round, or hold a round with its outcome:
+
+    Record = unplayed | played(Round) | scored(Round, Outcome)
+
+    unplayed
+    played(round(rock, paper))
+    scored(round(better(rock), rock), win)
+        >> scored(round(paper, rock), win)
+
+The constructors hold zero, one and two values. The pattern `scored(round(paper, a), outcome)` looks inside both layers of the last value: `a` names rock and `outcome` names win. A variable can also name a whole layer: `scored(thisRound, outcome)` keeps the round together.
+
+Constructors can now hold contents. That changes declarations, expressions, values and patterns:
+
+    T = c(A, …) | …
+
+    e ::= c(e, …)
+        | x                   if named by this case's patterns
+        | n(e, …)
+    v ::= c(v, …)
+    p ::= c(p, …) | x
+
+`A` and `B` still stand for declared types. For now, a declaration uses types declared before it. A constructor takes as many contents as its declaration lists; with none, write its name alone.
+
+An `e` place accepts any expression; a `v` place needs a value. A `p` place accepts a constructor pattern or a variable, so patterns can nest as data does. All variables in one case's patterns must have different names; each is available throughout its body.
+
+A type describes which contents fit. `round(win, lose)` can still be written: it is data, but it isn't a `Round`.
+
+## 4. Functions as values
+
+We used `better` twice to define `worse`. We can do the same with any rule from hands to hands:
+
+    twice : ((Hand) → Hand, Hand) → Hand
+    twice = (f, a) ↦ f(f(a))
+
+Read its type from the outside: two inputs, then one result. The first input is a function from hands to hands. The second is a hand. The result is a hand.
+
+    twice(better, rock)
+        >> better(better(rock))
+        >> better(paper)
+        >> scissors
+
+`better` on its own is the function. `better(rock)` applies it. A function is a value, so we can pass it around before using it.
+
+We can also write a function directly, without giving it a name:
+
+    (a) ↦ rock
+
+This rule accepts an input and always gives back rock. An unnamed function can also have several cases, such as `(rock) ↦ paper | (a) ↦ a`. Named or unnamed, the same pattern and body rules apply.
+
+We can pass the rule directly:
+
+    twice((a) ↦ rock, paper)
+        >> ((a) ↦ rock)(((a) ↦ rock)(paper))
+        >> ((a) ↦ rock)(rock)
+        >> rock
+
+Parentheses keep each function together. A body extends as far to the right as it can, so we group a function when something after it belongs outside its body.
+
+### Giving back a function
+
+Suppose we want to choose the hand that a rule always gives back:
+
+    always : (Hand) → (Hand) → Hand
+    always = (a) ↦ (b) ↦ a
+
+Given a hand, `always` makes a rule that ignores its own input and gives back that hand:
+
+    always(rock)
+        >> (b) ↦ rock
+
+The outer input went into the inner function's body, where `a` was. That body still waits until someone applies the new function:
+
+    always(rock)(paper)
+        >> ((b) ↦ rock)(paper)
+        >> rock
+
+The type makes the two stages visible. `(Hand) → (Hand) → Hand` means “from a hand to a function from hands to hands”. What follows `→` stays together, just as a body does. Two stages, `f(a)(b)`, are different from giving one function two inputs, `f(a, b)`.
+
+A function can take a rule and make another rule from it:
+
+    twofold : ((Hand) → Hand) → (Hand) → Hand
+    twofold = (f) ↦ (a) ↦ f(f(a))
+
+    twofold(better)
+        >> (a) ↦ better(better(a))
+
+That is the rule used by `worse`. And the rule made by `always` can be passed to `twice`:
+
+    twice(always(rock), paper)
+        >> … >> rock
+
+`>>` shows one step. `>> … >>` abbreviates a sequence of steps to show where they lead.
+
+### Keeping names clear
+
+A variable belongs to its case. Functions inside the body can use it, as `always` uses `a`. If an inner case introduces the same name, that inner name takes over there:
+
+    ((a) ↦ (a) ↦ a)(rock)(paper)
+        >> ((a) ↦ a)(paper)
+        >> paper
+
+The last `a` belongs to the inner case, so rock never replaces it. We replace a variable only where its name means that variable.
+
+Variables cannot reuse a constructor's or a defined function's name. Each global name has one meaning, and each function is defined once. For now, a definition uses only functions defined before it; repetition will widen that rule.
+
+### Holding a function
+
+A player can hold its rule:
+
+    Player = player((Hand) → Hand)
+
+    player(better)
+    player(always(rock))
+
+The first player chooses the hand that beats the one it is given. The second always chooses rock. A pattern gets the rule out, and application uses it:
+
+    choose : (Player, Hand) → Hand
+    choose = (player(f), a) ↦ f(a)
+
+    choose(player(better), rock)
+        >> better(rock)
+        >> paper
+
+A pattern can name a function, as `f` does here, but can't inspect its cases. We use a function by applying it.
+
+An application has this shape:
+
+    e(e, …)
+
+First work out the expression on the left to find the function. Then work out its inputs, from left to right, and apply it. In `always(rock)(paper)`, finding the function means working out `always(rock)` first.
+
+If the value found isn't a function, or takes a different number of inputs, the application gets stuck:
+
+    twice(rock, paper)        gets stuck: rock isn't a function
+    twice(result, rock)       gets stuck: result takes two inputs
+
+Each gets stuck when `f` is applied. The same rule applies to a name used directly: `better()` gets stuck because its input is missing.
+
+### What changed
+
+Every value is now data or a function. We have seen both as inputs and results:
+
+| Input | Result | Example |
+|---|---|---|
+| Data | Data | `better(rock)` |
+| Data | A function | `always(rock)` |
+| A function, with data | Data | `twice(better, rock)` |
+| A function | A function | `twofold(better)` |
+
+Data can hold either kind too: `round(rock, paper)` holds data, and `player(better)` holds a function. Three shapes change:
+
+    A ::= T
+        | (A, …) → B
+
+    e ::= c(e, …)
+        | x                   if named by a surrounding case
+        | n
+        | (p, …) ↦ e | …
+        | e(e, …)
+
+    v ::= c(v, …)
+        | n
+        | (p, …) ↦ e | …
+
+`A` and `B` now stand for either kind of type. The `e` to the left of an application's parentheses can be any expression too: it must produce a function when worked out. Every other `e` place has the same choices.
+
+A variable can come from this case or a surrounding case; the nearest one with that name wins. Patterns haven't changed: they take data apart or name a whole value, including a function.
 
 ## 5. Repeating
 
-How many rounds did the first player win? To count, we need numbers, and our language has none. So we make them:
+To keep score, we need numbers. We can make them from two constructors:
 
-```
-Nat = zero | succ(Nat)
-```
+    Nat = zero | succ(Nat)
 
-succ reads “one more than”. A Nat is zero, or one more than a Nat. So zero is a Nat, and so is succ(zero), one, and succ(succ(zero)), two, and so on, without end. The type holds itself. To add two numbers, we take the first apart, one layer at a time:
+`succ` means “one more than”. Zero is a number; one more than a number is another number. So `zero`, `succ(zero)` and `succ(succ(zero))` are zero, one and two.
 
-```
-add = (zero, b) ↦ b
-| (succ(a), b) ↦ succ(add(a, b))
-```
+The declaration uses its own name. A function can do that too:
 
-Zero and b make b. One more than a, and b, make one more than a and b. The second case uses add itself: a definition can use its own name. That is how a function goes around once for each layer, however many layers there are:
+    add : (Nat, Nat) → Nat
+    add = (zero, b) ↦ b
+        | (succ(a), b) ↦ succ(add(a, b))
 
-```
-add(succ(succ(zero)), succ(zero))
-becomes succ(add(succ(zero), succ(zero)))
-becomes succ(succ(add(zero, succ(zero))))
-becomes succ(succ(succ(zero)))
-```
+Zero and `b` make `b`. One more than `a`, and `b`, make one more than `a` and `b`:
 
-Each step takes a layer off the first number and puts it outside, until zero ends it. Two and one make three.
+    add(succ(succ(zero)), succ(zero))
+        >> succ(add(succ(zero), succ(zero)))
+        >> succ(succ(add(zero, succ(zero))))
+        >> succ(succ(succ(zero)))
 
-Once names can be used before they are defined, order no longer matters: a definition can use any defined name, even one defined after it, and a declaration any type. worse could just as well be defined before better, and Round declared before Hand.
+Each step takes a layer off the first input and puts it around the result. The same two cases work however many layers there are. This is **recursion**: using a name inside its own definition.
 
-Nothing makes a function use itself on something smaller. So carrying out can go on forever:
+A win earns one point:
 
-```
-loop = (a) ↦ loop(a)
-loop(rock)
-becomes loop(rock), and so on, forever
-```
+    points : (Outcome) → Nat
+    points = (win) ↦ succ(zero)
+           | (other) ↦ zero
 
-Repeating needed no new form: only a name used inside its own definition, or a type inside its own declaration. Two rules widen into one, and carrying out gets a third way to end:
+    points(draw)       >>   zero
 
-```
-names a declaration or a definition can use any type or defined name,
-its own included, even one declared or defined after it widened
-ends never: carrying out goes on forever
-```
+Here the last case overlaps the first: it could match win too. Trying cases in order is what makes win worth a point and everything else worth zero.
 
-## 6. Lists
+Recursion needn't make progress:
 
-A match is a list of rounds: no rounds, or a round followed by more rounds. The hands a player has shown are a list too, of hands instead of rounds. Only the type of the items changes, so a type can leave it open, with a variable for a type after its name:
+    loop : (Hand) → Hand
+    loop = (a) ↦ loop(a)
 
-```
-List(Item) = empty | cons(Item, List(Item))
-```
+    loop(rock)
+        >> loop(rock), and so on forever
 
-Item is a variable that stands for a type, and like a type, it is written with a capital. A List(Round) is empty, or cons holding a round and a List(Round): Item is filled with Round. cons reads “followed by”, so
+A function type doesn't promise to finish. `(Hand) → Hand` says that on hand inputs it doesn't get stuck, and any result is a hand. `loop` never finishes. The function `(rock) ↦ paper` doesn't fit: it gets stuck on paper or scissors.
 
-```
-cons(round(paper, rock), cons(round(rock, rock), empty))
-```
+Two functions can also refer to each other. These alternate between rock and paper as the number grows:
 
-is a match of two rounds: paper against rock, then rock against rock. A type can leave more than one type open:
+    rockTurn : (Nat) → Hand
+    rockTurn = (zero) ↦ rock | (succ(a)) ↦ paperTurn(a)
 
-```
-Pair(One, Two) = pair(One, Two)
-```
+    paperTurn : (Nat) → Hand
+    paperTurn = (zero) ↦ paper | (succ(a)) ↦ rockTurn(a)
 
-A Pair(Outcome, Nat) holds an outcome and a number, as pair(win, zero) does. And types nest: a List(List(Hand)) is a list of lists of hands.
+    rockTurn(succ(succ(zero)))
+        >> paperTurn(succ(zero))
+        >> rockTurn(zero)
+        >> rock
 
-Item means something only inside List’s own declaration. The variables of one declaration are all different, like One and Two, and none is named like a declared type. A type is always filled with as many types as it takes: List with one, Pair with two.
+Types can refer to each other too:
 
-Functions need nothing like this. A function looks only at how a value is built, so a function that works through a list works through a list of anything:
+    Turn = turn(Hand, Reply) | finished
+    Reply = reply(Hand, Turn)
 
-```
-size = (empty) ↦ zero
-| (cons(a, rest)) ↦ succ(size(rest))
-size(cons(rock, cons(paper, empty)))
-comes to succ(succ(zero))
-```
+    turn(rock, reply(paper, finished))
 
-Now we can count the rounds the first player won:
+A turn holds a hand and a reply; the reply holds a hand and the next turn. Here the next turn is `finished`.
 
-```
-wins = (empty) ↦ zero
-| (cons(this, rest)) ↦ add(point(judge(this)), wins(rest))
-point = (win) ↦ succ(zero)
-| (other) ↦ zero
-```
+No expression, value or pattern shape changes. The name rule does: functions and types can now refer to themselves or to ones defined later. For now, a recursive type reference must go through data contents. Section 12 will allow function results too.
 
-No rounds, no wins. A round followed by the rest: a point if this round was won, added to the wins in the rest.
+Working out an expression can finish with a value, get stuck, or go on forever.
 
-```
-wins(cons(round(paper, rock), cons(round(rock, rock), empty)))
-comes to add(succ(zero), add(zero, zero))
-comes to succ(zero)
-```
+## 6. Leaving a type open
 
-On the map, X stands for any variable for a type:
+A match is a list of rounds. The hands a player has shown are a list too. We can describe both with one declaration:
 
-```
-T(X, …) = c(A, …) | … a type that takes types; T alone if it takes none widened
-A ::= T(A, …) a type, filled with types; T alone if it takes none widened
-X a variable for a type
-names in a declaration, every name in a type is a declared type, or one of the
-declaration's own variables; those are all different, and none is named
-like a declared type
-names every name is given as many as it takes: a defined name, as many inputs
-as its function takes; a constructor, as many contents as it holds,
-and none means no parentheses; a type, as many types as it takes widened
-```
+    List(Item) = empty | cons(Item, List(Item))
 
-## 7. Functions as values
+`Item` leaves the type of each item open. A `List(Hand)` is empty, or a hand followed by a list of hands. A `List(Round)` has the same shape with rounds in those places.
 
-A player picks each hand by a rule. A simple rule looks at the other player’s last hand: better is one, “show what would have beaten it”, and worse is another. To let rules play each other, we need to hand rules around like any other value.
+    cons(rock, cons(paper, empty))
 
-So far, a defined name was always applied. It can also be written on its own. Then it stands for its function, and it is a value: nothing in it is worked out until it is applied. So a function can be an input:
+This is a list of two hands. `cons` holds the first item and the remaining list. A function can follow that structure:
 
-```
-twice = (f, a) ↦ f(f(a))
-twice(better, rock)
-becomes better(better(rock))
-comes to scissors
-```
+    size : (List(Item)) → Nat
+    size = (empty) ↦ zero
+         | (cons(a, rest)) ↦ succ(size(rest))
 
-What twice applies is a variable, f. So what is applied can now be any expression. It is worked out first, until it is a value, then the inputs, and then the application takes its step.
+    size(cons(rock, cons(paper, empty)))
+        >> … >> succ(succ(zero))
 
-A rule can also be written out, without a name, wherever an expression can go. A player who always shows rock:
+In a signature, an undeclared capitalised name such as `Item`, written where a type goes, stands for an arbitrary type. Use the same choice everywhere that name occurs in that signature. The signature describes the function for every choice: `size` works for lists of hands, rounds, or any other kind of value. Types guide our reading; they aren't extra inputs to the function.
 
-```
-(a) ↦ rock
-```
-
-It is applied the same way as a named function, and can be given like any other value:
-
-```
-((a) ↦ rock)(paper)
-becomes rock
-twice((a) ↦ rock, paper)
-comes to rock
-```
-
-The parentheses keep the function in one piece. Without them, (paper) would be read as part of the body, since a body reaches as far as it can. Parentheses only group: they change nothing else. And a definition adds only a name: better is the function (rock) ↦ paper | (paper) ↦ scissors | (scissors) ↦ rock, written out and named.
-
-A function written out inside a body can use the variables around it. That is how a function makes a function from its input:
-
-```
-always = (a) ↦ (b) ↦ a
-always(rock)
-becomes (b) ↦ rock
-always(rock)(paper)
-comes to rock
-```
+We can transform every item in a list:
 
-always(rock) is the rule “always rock”, made without a definition of its own. The input went wherever a was, even inside the inner function, where nothing is worked out yet. In always(rock)(paper), what is applied is itself an application: it is worked out first, to the rule, and then the rule is applied. A function can also take a rule and give back a rule:
+    each : ((From) → To, List(From)) → List(To)
+    each = (f, empty) ↦ empty
+         | (f, cons(a, rest)) ↦ cons(f(a), each(f, rest))
 
-```
-twofold = (f) ↦ (a) ↦ f(f(a))
-twofold(better)
-becomes (a) ↦ better(better(a))
-```
+    each(better, cons(rock, cons(paper, empty)))
+        >> … >> cons(paper, cons(scissors, empty))
+    each(points, cons(win, cons(draw, empty)))
+        >> … >> cons(succ(zero), cons(zero, empty))
 
-twofold(better) is worse, made from better.
+The first example changes hands into hands. The second changes outcomes into numbers. The signature shows the connection: the function takes the kind of item in the input list and gives the kind in the output list.
 
-When an inner variable has the same name as an outer one, the name means the nearer one:
+Two independent types can be left open too:
 
-```
-((a) ↦ (a) ↦ a)(rock)(paper)
-becomes ((a) ↦ a)(paper)
-becomes paper
-```
+    Pair(First, Second) = pair(First, Second)
 
-In the first step, rock doesn’t go into the inner function: there, a means the inner function’s own variable.
+`pair(win, zero)` is a `Pair(Outcome, Nat)`. The declaration's type variables belong only to that declaration. Their names must be different, and must not reuse a declared type's name. Types can nest: `List(List(Hand))` is a list of lists, and `List((Hand) → Hand)` is a list of rules.
 
-Data can hold rules too. A list of rules is a List((Hand) → Hand). (Hand) → Hand is a function type, and reads “from Hand to Hand“: the type of functions that, given a hand, give back a hand.
+Declarations gain type variables; types gain places to fill them:
 
-```
-cons(better, cons(always(rock), empty))
-```
+    T(X, …) = c(A, …) | …
 
-Now rules can play each other. play plays a number of rounds between two rules, f and g, where a and b are the hands each player showed last. It asks each rule for its next hand, f answering b and g answering a, and meet puts the two hands into a round and plays the rest of the match from there:
+    A ::= T(A, …)
+        | X                   if available in this declaration or signature
+        | (A, …) → B
 
-```
-play = (zero, f, g, a, b) ↦ empty
-| (succ(left), f, g, a, b) ↦ meet(left, f, g, f(b), g(a))
-meet = (left, f, g, a, b) ↦ cons(round(a, b), play(left, f, g, a, b))
-```
+`X` stands for a type variable. In a declaration it must be listed on the left; in a signature it stands for an arbitrary type. Each type takes as many type arguments as its declaration lists. With none, write `Hand`, without parentheses.
 
-play and meet use each other. Two rounds of better against “always rock”, both players having last shown rock:
+### Playing a match
 
-```
-play(succ(succ(zero)), better, always(rock), rock, rock)
-comes to cons(round(paper, rock), cons(round(paper, rock), empty))
-```
+We can now let two rules play. Each rule sees the other player's previous hand. `play` asks both for their next hands; `meet` puts those hands into a round and plays the remaining rounds:
 
-better beats “always rock” in both rounds: wins of this match comes to succ(succ(zero)). Every value is now data or a function, and either can go anywhere a value goes:
+    play : (Nat, (Hand) → Hand, (Hand) → Hand, Hand, Hand) → List(Round)
+    play = (zero, f, g, a, b) ↦ empty
+         | (succ(left), f, g, a, b) ↦ meet(left, f, g, f(b), g(a))
 
-```
-(Hand) → Hand takes data, gives data better
-((Hand) → Hand, Hand) → Hand takes a function, gives data twice
-(Hand) → (Hand) → Hand takes data, gives a function always
-((Hand) → Hand) → (Hand) → Hand takes a function, gives a function twofold
-List(Round) data holding data a match
-List((Hand) → Hand) data holding functions a list of rules
-```
+    meet : (Nat, (Hand) → Hand, (Hand) → Hand, Hand, Hand) → List(Round)
+    meet = (left, f, g, a, b) ↦ cons(round(a, b), play(left, f, g, a, b))
 
-(Hand) → (Hand) → Hand reads “from Hand to (Hand) → Hand“: like a body, what comes after → reaches as far as it can.
+The two definitions use each other. Two rounds of `better` against “always rock”, starting with rock as both previous hands:
 
-Now that a variable can be applied, carrying out can get stuck in two more ways:
+    play(succ(succ(zero)), better, always(rock), rock, rock)
+        >> … >> cons(round(paper, rock), cons(round(paper, rock), empty))
 
-```
-twice(rock, paper) becomes rock(rock(paper)): stuck, rock is not a function
-twice(result, rock) becomes result(result(rock)): stuck, result takes two inputs
-```
+And we can count the wins:
 
-Written directly, rock(paper) and result(rock) are not expressions, since the names can be seen. Through a variable, they can’t be seen coming. Only carrying out finds them, and there, no step applies. On the map, B, like A, stands for any type:
+    wins : (List(Round)) → Nat
+    wins = (empty) ↦ zero
+         | (cons(this, rest)) ↦ add(points(judge(this)), wins(rest))
 
-```
-e ::= n a defined name
-(p, …) ↦ e | … a function written out
-e(e, …) an application widened from n(e, …)
-v ::= n a defined name
-(p, …) ↦ e | … a function written out
-A ::= (A, …) → B a function type: from A, … to B
-((p, …) ↦ e | …)(v, …)
-becomes the body of the first case whose patterns v, … match,
-with what each variable matched put wherever its name means it
-n(v, …) becomes the same, with the cases of n's definition widened
-names a variable means something in the body of its own case,
-functions written inside it included widened
-names in an expression, a name means the nearest variable of that name;
-with none, it is a constructor or a defined name widened
-names every name is given as many as it takes: a defined name written right
-before inputs, as many inputs as its function takes; a constructor,
-as many contents as it holds, and none means no parentheses; a type,
-as many types as it takes widened
-order a step needs values: in an application, what is applied is worked out
-first, then its inputs; in data, its contents; all from left to right widened
-writing parentheses only group: (e) is e, kept in one piece
-writing a body reaches as far as it can, and so does what comes after →
-```
+    wins(play(succ(succ(zero)), better, always(rock), rock, rock))
+        >> … >> succ(succ(zero))
 
-## 8. What a type means
+## 7. The core together
 
-We have said that rock is a Hand, and that better goes from Hand to Hand. What does that mean, exactly?
+Every value we have made is data or a function:
 
-A type says which values are of a kind. rock is a Hand: it is one of Hand’s constructors. round(paper, rock) is a Round: it is round holding two hands. cons(rock, empty) is a List(Hand): it is cons holding a hand and a List(Hand), with Hand in place of Item. So a value is of a type when it is built by one of the type’s constructors, holding values of the types declared for its contents.
+| A value | How we make it | How we use it |
+|---|---|---|
+| Data | A constructor with its contents | A pattern that takes it apart |
+| A function | Cases with patterns and bodies | Application to inputs |
 
-round(win, lose) can still be written and carried out. It is data, just not a Round. A type says what a kind is. It doesn’t stop anything from being written.
+Contents, inputs and results can themselves be data or functions. A type describes which kind belongs in each place.
 
-better and worse are (Hand) → Hand: given any hand, they never get stuck, and they end in a hand. (rock) ↦ paper is not: given paper, it gets stuck. loop is one: given a hand, it never gets stuck, and it never ends at all. So a value is of type (A, …) → B when, applied to values of types A, …, it never gets stuck, and if it ends, it ends in a value of type B.
+Here are all the shapes introduced so far:
 
-A type that holds itself is read over and over: succ(succ(zero)) is a Nat because succ(zero) is, and succ(zero) is because zero is. A type can also hold itself in what a function gives back. A game against the computer is over, with an outcome, or it is your turn, and given your hand, it gives the rest of the game:
+    T(X, …) = c(A, …) | …
+    n : (A, …) → B
+    n = (p, …) ↦ e | …
 
-```
-Game = over(Outcome) | turn((Hand) → Game)
-```
+The complete expression shape is:
 
-turn((a) ↦ over(result(a, rock))) is one round against rock. A game can also go on forever:
+    e ::= c(e, …)               data
+        | x                     if named by a surrounding case
+        | n                     a defined name
+        | (p, …) ↦ e | …        a function
+        | e(e, …)               an application
 
-```
-endless = (a) ↦ turn(endless)
-```
+    v ::= c(v, …)
+        | n
+        | (p, …) ↦ e | …
 
-turn(endless) is a Game. Following it never ends, but it never finds anything that isn’t a Game. So a value is of a type that holds itself when following the definition, as far as it can be followed, never finds anything that doesn’t fit.
+Each `e` place can hold any of the five forms. This gives a function returning a function, data holding an application, or an application finding its function through another application.
 
-This goes in a circle: what counts as a Game depends on what counts as a Game. For Game, the circle settles: the more values count as games, the more functions give back games, so the two grow together. But a type can’t hold itself in what a function takes. In Test = test((Test) → Outcome), the more values count as tests, the more inputs a (Test) → Outcome must take without getting stuck, so the fewer functions count, and the fewer values are tests. Counting more makes fewer: the circle never settles, and the definition says nothing.
+Patterns also fit inside patterns:
 
-Nothing in carrying out looks at types. A type is for us: it says what kind of value we mean. Whether a value is of a kind is a question we can ask about it, but asking is not a step, and this book leaves such questions aside.
+    p ::= x                     name the whole value
+        | c(p, …)               match its constructor and contents
 
-```
-types a value is of type T(A, …) when it is built by one of T's constructors,
-holding values of the types declared for its contents,
-with A, … in place of T's variables
-types a value is of type (A, …) → B when, applied to values of types A, …,
-it never gets stuck, and if it ends, it ends in a value of type B
-types a type that holds itself: a value is of it when following the definition,
-as far as it can be followed, never finds anything that does not fit
-types a type can hold itself in its contents, and in what a function gives back,
-but not in what a function takes
-types nothing in carrying out looks at types
-```
+For example, `cons(round(rock, a), rest)` looks inside both the list and its first round. It matches `cons(round(rock, paper), empty)`, with paper as `a` and the empty list as `rest`.
 
-### All of saying
+Types have three shapes:
 
-That is all of saying. It has five forms of expression: variables, data, defined names, functions written out, and applications. An expression and what it comes to say the same thing, the second more directly: worse(paper) and rock are two ways of saying one hand.
+    A ::= T(A, …)               a declared type, filled with types
+        | X                     a type variable available here
+        | (A, …) → B            a function type
 
-Look at what can take a step. Only an application can, and only once what is applied and its inputs are values: a function meeting values. In that step, the function’s patterns meet the values, and take them apart. Nothing else ever happens. Each kind of value is made one way and used one way, and every step is a use meeting what was made:
+Each type place can hold any of these forms, as in `List((Hand) → Hand)`. In a declaration, `X` must be listed among its type variables. In a signature, it stands for an arbitrary type, chosen consistently.
 
-```
-made by used by
-data a constructor, holding values a pattern, which takes it apart
-function cases, each with patterns and a body applying it to inputs
-```
+The shapes say where pieces fit; matching and evaluation say what happens. A program gives declarations and definitions, then an expression to work out.
 
-## Part two: doing
+These pieces are enough to describe any computable transformation of data. Next we will let a computation ask for something while it runs: a hand someone chooses, for example.
 
-## 9. Asking
+## 8. Requests
 
-So far, everything a program works with is written in it. It can’t play against you, because it can’t ask for your hand. An expression only says; it can’t ask. So we add a way to ask:
+Everything so far has been **saying**. Each step rewrites part of an expression into something that means the same: `worse(paper)` and `rock` are two ways of writing one hand. Computing can also be pictured another way, as steps that change a memory kept beside the program. That is **doing**. The two pictures compute the same things, but some ideas are natural only as doing: waiting for a person, keeping a score that changes, giving up partway.
 
-```
-Unit = unit
-effect Console = read : () → Hand | show : (Outcome) → Unit
-```
+The medium keeps saying underneath and brings doing back on top. It adds a new form only when an idea can't be said **locally** with the forms already there: either not at all, or only by changing parts of the program far from where the idea is used. Waiting for a person is the first such idea.
 
-This declares an effect, Console: a kind of asking, with two requests. read : () → Hand reads “read takes nothing, and is answered with a hand”: it asks for a hand someone types. show : (Outcome) → Unit takes an outcome to show on the screen, and is answered with unit. unit, the only value of Unit, says nothing: there is nothing to answer, only something done. Like a type’s name, an effect’s is written with a capital. Each effect is declared once, and each request belongs to one effect. A request is written like an application, with as many inputs as it is declared with:
+So far, we have chosen every hand in the program. To let a person choose, we need a way to ask:
 
-```
-show(result(read(), rock))
-```
+    Unit = unit
 
-This program reads your hand, and shows how it does against rock. Carrying it out, the first thing to work out is read(). But a request is not a value, and no step works it out. Carrying out stops there, waiting for an answer from outside the program:
+    effect Console = read : () → Hand
+                   | show : (Outcome) → Unit
 
-```
-show(result(read(), rock)) waits at read()
-```
+`Console` is an **effect**, declared by listing its **requests**. `read` takes no input and asks to be answered with a hand. `show` takes an outcome to display. Its answer is `unit`, the only value of `Unit`: there is nothing useful to give back, only something done.
 
-Whatever runs the program asks you for a hand. Say you type paper. The answer goes where the request was, and carrying out goes on, until it waits again:
-
-```
-show(result(paper, rock))
-becomes show(win) waits at show(win)
-```
-
-The screen shows win. The answer, unit, goes where the request was, and nothing is left to work out:
+An effect declaration has this shape:
 
-```
-unit
-```
+    effect F = r : (A, …) → B | …
 
-The program came to a value, and on the way, it asked twice, and the world outside answered. On the map, F stands for any effect’s name, and r for any request:
+`F` stands for an effect's name, and `r` for a request's name. Each request gives the types of its inputs and, after `→`, the type of its answer.
 
-```
-effect F = r : (A, …) → B | … an effect, with its requests:
-what each takes, and what it is answered with
-e ::= r(e, …) a request
-names each type, effect and defined name is declared or defined once;
-each constructor belongs to one type, and each request to one effect widened
-names every name is given as many as it takes: a defined name written right
-before inputs, as many inputs as its function takes; a constructor,
-as many contents as it holds, and none means no parentheses; a type,
-as many types as it takes; a request, as many inputs as it is
-declared with widened
-names the variables of one case are all different,
-and none has the name of a defined name or a request widened
-names in an expression, a name means the nearest variable of that name;
-with none, it is a constructor, a request or a defined name widened
-order a step needs values: in an application, what is applied is worked out
-first, then its inputs; in data, its contents; in a request, its
-inputs; all from left to right widened
-ends waiting: the next thing to work out is a request; when the outside
-answers, the answer goes where the request was, and carrying out goes on
-ends stuck: something is left to work out, no step applies,
-and it is not waiting widened
-```
+    show(result(read(), rock))
 
-## 10. Answering
+This asks for a hand, finds its outcome against rock, and shows that outcome. The first thing it needs is `read()`. A request has no answer of its own, so the program waits there.
 
-Sometimes the program itself should answer: to test it without a person at the keyboard, say, or to let the computer choose. A handler goes around an expression, and answers its requests the way the outside would:
+Suppose the person chooses paper. The answer goes where the request was:
 
-```
-handle result(read(), rock) with
-(o) ↦ o
-| (read(), k) ↦ k(paper)
-```
+    show(result(paper, rock))
+        >> show(win)
 
-A handler has cases, like a function. The first is for the value the expression inside comes to: here, it gives that value back. The second is for the request read(). In a handler’s case, read means the request, as in a pattern a constructor’s name means the constructor.
+Now it waits at `show(win)`. Whatever runs the program displays win and answers `unit`. The whole expression then becomes that answer, and is finished.
 
-What is k? When the outside answered, the answer went where the request was, and carrying out went on. A handler has to be able to say that itself. So its case for a request is given what was waiting for the answer, as a function: the rest. Here, result(read(), rock) was waiting for a hand to put where read() is, so the rest is:
+A request can go inside data as well as inside an application:
 
-```
-(y) ↦ handle result(y, rock) with …
-```
+    round(read(), rock)
 
-Here and from now on, with … stands for the same handler’s cases, written again. Given a hand, the rest puts it where the request was, and goes on, inside the same handler. The case for read() gets the rest as k, and k(paper) answers paper:
+The round waits for the requested hand before it is a value.
 
-```
-handle result(read(), rock) with …
-becomes ((y) ↦ handle result(y, rock) with …)(paper)
-becomes handle result(paper, rock) with …
-becomes handle win with …
-becomes win
-```
+Requests can take or return functions too. We can ask for a playing rule, or ask to save one:
 
-In the first step, the next thing to work out inside the handler is read(), so the handler becomes the body of its case for read(), with the rest in place of k. In the third, a step happens inside the handler, as any step would. In the last, the expression inside is a value, so the handler becomes the body of its case for values.
+    effect Rules = askRule : () → ((Hand) → Hand)
+                 | saveRule : ((Hand) → Hand) → Unit
 
-result(read(), rock) never says where the hand comes from: the handler does. Another handler, or the outside, could answer differently, without changing result(read(), rock) at all.
+    saveRule(better)
+    askRule()(rock)
+    saveRule(askRule())
 
-A handler that has no case for a request lets it pass, to a handler further out:
+The first gives a function to a request. The second asks for a function, then applies it to rock. The third uses the answer to one request as the input of another. The inputs and answer have the types in the declaration; they can be data or functions.
 
-```
-handle (handle result(read(), rock) with (o) ↦ point(o)) with
-(o) ↦ o
-| (read(), k) ↦ k(paper)
-comes to succ(zero)
-```
+Expressions gain one alternative:
 
-The inner handler has no case for read(), so the outer one answers. The rest goes on inside both handlers, so the inner one still gets the outcome, win, and turns it into a point. Past every handler, a request goes to the outside. So the outside is like one more handler, around the whole program, that always goes on once with its answer.
+    e ::= c(e, …)
+        | x                   if named by a surrounding case
+        | n
+        | (p, …) ↦ e | …
+        | e(e, …)
+        | r(e, …)
 
-Doing has two forms of expression: requests and handlers. They too are made one way and used one way: a request is made by asking, and used by a handler, which answers it. Every step is still a use meeting what was made.
+A request can fill any `e` place. Its inputs are worked out from left to right, just like a function's. Each request belongs to one effect and takes its declared number of inputs. Values and patterns haven't changed: a request waits for an answer; it isn't a value.
 
-On the map:
+### Saying what a function may ask
 
-```
-e ::= handle e with (p) ↦ e | (r(p, …), x) ↦ e | …
-a handler around e: cases for the value it comes to,
-and for requests, each with a variable for the rest
-handle v with …
-becomes the body of the first case for values that v matches,
-with what each variable matched put wherever its name means it
-handle e with …
-becomes the body of the first case for r whose patterns v, … match,
-with what they matched in place, and the rest in place of x,
-when the next thing to work out in e is a request r(v, …),
-and no handler in e around that request has a case for r
-rest the rest is (x) ↦ handle e′ with …, where e′ is e with x where the
-request was, and x is a variable used nowhere in e or in the handler
-order in a handler, steps happen in the expression inside it
-ends waiting: the next thing to work out is a request that no handler around
-it has a case for; when the outside answers, the answer goes where the
-request was, and carrying out goes on widened
-```
+We can give the game a name and keep it for later:
 
-## 11. Ways to go on
+    game : () → Unit ! {Console}
+    game = () ↦ show(result(read(), rock))
 
-A handler holds the rest as a value, k, and can do with it whatever can be done with a function. Above, it went on once.
+`! {Console}` reads “may ask Console”. Calling `game()` starts the requests. Until then, the body waits like any other function's body.
 
-It can never go on. A player who has run out of prepared hands forfeits:
+A person can supply a playing rule too:
 
-```
-effect Forfeit = forfeit : () → Hand
-firstOf = (cons(a, rest)) ↦ a
-| (empty) ↦ forfeit()
-```
+    human : (Hand) → Hand ! {Console}
+    human = (previous) ↦ read()
 
-firstOf gives the first of a player’s prepared hands, and with none left, asks to forfeit. A handler decides what forfeiting means:
+The rule ignores the previous hand and asks the person for the next one. Its result is a hand, provided the request is answered with a hand.
 
-```
-handle judge(round(firstOf(empty), rock)) with
-(o) ↦ o
-| (forfeit(), k) ↦ lose
-comes to lose
-```
+With no effects, leave out `! {…}`.
 
-The handler never applies k, so the rest never happens. The round is never judged, and the handler’s answer, lose, stands for the whole. Had it gone on with k(rock), the round would have been judged a draw. This is how errors work: something asks for what can’t be given, and a handler decides what happens instead.
+“May ask” includes not asking. So `better` also fits `(Hand) → Hand ! {Console}`. We can keep rules and people in one list:
 
-It can go on several times. Which of a player’s hands would beat rock? A handler can answer read() with every hand in turn, and count the wins:
+    cons(better, cons(human, empty))
 
-```
-handle result(read(), rock) with
-(o) ↦ point(o)
-| (read(), k) ↦ add(k(rock), add(k(paper), k(scissors)))
-comes to succ(zero)
-```
+Its type is `List((Hand) → Hand ! {Console})`. Several effects can be listed too: `() ↦ askRule()(read())` fits `() → Hand ! {Rules, Console}`. It asks for a rule, then a hand, and applies the rule to that hand.
 
-Each k(…) goes on from the request with a different hand, and comes through the first case to a point: k(rock) and k(scissors) come to zero, and k(paper) to succ(zero). One hand wins. This is search: one question, every answer tried.
+The list describes requests left for something else to answer. If each receives an answer of its declared type, the function must avoid getting stuck and give the stated kind of result if it finishes.
 
-It can go on later. A handler can keep the rest in data, and give it back, so that whoever holds it goes on when they want. A player can be a process of its own, giving its hands one at a time. To give a hand and then go on, we need to do one thing and then another. Since inputs are worked out from left to right, a function that gives back its second input does it:
+### Asking now or later
 
-```
-then = (u, a) ↦ a
-effect Give = give : (Hand) → Unit
-cycle = (a) ↦ then(give(a), cycle(better(a)))
-```
+We can ask a person for a hand, then make a rule that always gives that hand:
 
-cycle(rock) gives rock, then paper, then scissors, then rock again, forever. It doesn’t know who takes its hands, or when. A handler can stop it at each hand, and give back the hand together with the rest:
+    pick : () → ((Hand) → Hand) ! {Console}
+    pick = () ↦ always(read())
 
-```
-Moves = done | gave(Hand, (Unit) → Moves)
-moves = (task) ↦ (u) ↦ handle task() with
-(o) ↦ done
-| (give(a), k) ↦ gave(a, k)
-```
+Calling `pick()` asks once. If the person answers paper, it gives back `(b) ↦ paper`. Applying that rule asks nothing: the hand is already chosen.
 
-task is the player, kept for later as a function with no inputs, like later in section 3. Given cycle(rock) itself, moves would get nothing: an input is worked out before it goes in, so give(rock) would be asked before any handler was around it. Kept for later, the player starts only at task(), inside the handler. moves(task) is a function waiting for unit, so nothing starts until someone asks. Given unit, it starts the player, and stops at the first hand. The rest, k, waits for unit too, the answer to give. Given it, it goes on to the next hand, and stops again. With k, k′ and k″ (“k prime”, “k double prime”) the rests after each hand:
+Parentheses group a type just as they group an expression. Here they keep the returned rule's type, `((Hand) → Hand)`, together. The `! {Console}` outside those parentheses belongs to the call that makes the rule.
 
-```
-moves(() ↦ cycle(rock))(unit) comes to gave(rock, k)
-k(unit) comes to gave(paper, k′)
-k′(unit) comes to gave(scissors, k″)
-```
+To return a rule that asks each time it is used:
 
-cycle never ends, but it is carried out only as far as someone asks. This is a generator: it gives its items one at a time, each when it is asked for. And Moves, like Game, holds itself in what a function gives back. So a handler can go on once, never, several times, or later. The same two forms, request and handler, say all four. None of them needed anything new on the map.
+    askLater : () → ((Hand) → Hand ! {Console})
+    askLater = () ↦ human
 
-## 12. Memory
+Calling `askLater()` gives back `human` without asking. Calling the returned rule asks for a hand. The effect is inside the parentheses because it belongs to that rule.
 
-A score changes as the game goes on. Saying can’t change anything, but it can hand a changing thing along: the score before goes in, and the score after comes out. Say we record each round: give back its outcome, and the score with a point added if the round was won:
+Both calls may ask too: `() → ((Hand) → Hand ! {Console}) ! {Console}`. Each suffix belongs to the nearest preceding arrow in the same group. Without parentheses, arrows extend to the right.
 
-```
-record = (o, total) ↦ pair(o, add(point(o), total))
-```
+### Leaving the requests open
 
-A function written out and applied at once can take the pair apart: its pattern names the parts.
+`each` applies a function to every item in a list. That function can be `human` too:
 
-```
-((pair(o, total)) ↦ total)(pair(win, succ(zero)))
-becomes succ(zero)
-```
+    each(human, cons(rock, cons(paper, empty)))
 
-Now the outcomes of two rounds, with the score kept. Record the first round with the score total, and call what comes back a and m. Record the second with m, and call what comes back b and t. Give back both outcomes, with the score t:
+This asks for two hands, from left to right, and collects the answers. If the person answers scissors and then rock, the result is `cons(scissors, cons(rock, empty))`.
 
-```
-outcomes = (first, second, total) ↦
-((pair(a, m)) ↦
-((pair(b, t)) ↦ pair(cons(a, cons(b, empty)), t))
-(record(judge(second), m)))
-(record(judge(first), total))
-outcomes(round(paper, rock), round(rock, rock), zero)
-comes to pair(cons(win, cons(draw, empty)), succ(zero))
-```
+The earlier signature described only functions that ask nothing. Replace it with this wider one; the definition stays the same:
 
-It works, but outcomes doesn’t care about the score: it only hands it on. So must every function that uses outcomes, and every function that uses those. One small idea touches everything on the way. We want to mention the score only where it changes. With requests, we can: a function can ask for the score, and ask to set it. An effect can take variables for types, as a type can:
+    each : ((From) → To ! {Asks}, List(From)) → List(To) ! {Asks}
 
-```
-effect State(Kept) = get : () → Kept | put : (Kept) → Unit
-```
+`Asks` leaves a list of effects open, just as `From` and `To` leave types open. Choose the same list everywhere it occurs in this signature. For `human`, it is `Console`; for `better`, it can be empty. `each` may ask whatever the function it uses may ask.
 
-In State(Nat), get asks what the memory holds, a number, and put sets it. Now:
+An undeclared capitalised name in an effect list stands for a list, possibly empty. Known effects can go alongside it, as in `{Console, Asks}`. Order doesn't matter, and repeated effects count once. These are descriptions, not extra inputs to the function.
 
-```
-record = (win) ↦ then(put(succ(get())), win)
-| (o) ↦ o
-outcomes = (first, second) ↦
-cons(record(judge(first)), cons(record(judge(second)), empty))
-```
+The type shape now includes possible effects. An entry in their list is a named effect or a list variable:
 
-These replace the record and outcomes above. A won round gets the score, puts back one more, and then gives back win. Only record, where the score changes, mentions it, and outcomes is back to saying only what it means.
+    A ::= T(A, …)
+        | X                   if available in this declaration or signature
+        | (A, …) → B ! {E, …}
 
-A handler answers get and put. Nothing in the language ever changes, so the handler can’t keep the score in a box and change what is in it. It does what the first outcomes did, and hands the score along from each request to the next, but it does it in one place. Each of its cases gives back a function that waits to be told the score as it is now, m:
+    E ::= F                   a declared effect
+        | S                   a list variable, only in a signature
 
-```
-at a value: given m, give back the value together with m;
-at get(): given m, answer m, and go on with the score still m;
-at put(b): given m, answer unit, and go on with the score now b.
-```
+`S` follows the rule just shown with `Asks`: one choice throughout its signature. One name cannot stand for both a type and an effect list.
 
-Written out:
+## 9. Handlers
 
-```
-keep = (task, start) ↦ (handle task() with
-(o) ↦ ((m) ↦ pair(o, m))
-| (get(), k) ↦ ((m) ↦ k(m)(m))
-| (put(b), k) ↦ ((m) ↦ k(unit)(b)))(start)
-```
+The program can answer a request itself. A **handler** goes around an expression and says how to answer:
 
-In the case for put(b), the pattern b matches whatever put was given. The rest, k, has the same handler around it, so it too gives back a function waiting for the score. k(m) answers the request with m, and the (m) after it tells the rest the score. k(unit)(b) answers unit, and tells the rest that the score is now b. The (start) at the end tells the handler the first score. And task is kept for later, as in moves. Two rounds, the first won and the second drawn, starting from zero. k is the rest after the first request, get(), and k′ the rest after the second, put(succ(zero)). Each “comes to” skips steps, and the note on the right says where it stopped:
+    handle better(read()) with
+          (answer) ↦ answer
+        | (read(), next) ↦ next(rock)
 
-```
-keep(() ↦ outcomes(round(paper, rock), round(rock, rock)), zero)
-comes to ((m) ↦ k(m)(m))(zero) at get()
-becomes k(zero)(zero) get() is answered zero
-comes to ((m) ↦ k′(unit)(succ(zero)))(zero) at put(succ(zero))
-becomes k′(unit)(succ(zero)) the score is now one
-comes to ((m) ↦ pair(cons(win, cons(draw, empty)), m))(succ(zero))
-becomes pair(cons(win, cons(draw, empty)), succ(zero))
-```
+The first case receives the final value and gives it back. The second receives the request. It answers rock, then continues.
 
-The same result as the first outcomes: the score went along exactly as before, but only the handler and record ever mention it.
+`next` is what remains to be done, written as a function. Here, what remains is to use `better` on the answer. It also keeps the same handler around that work:
 
-With requests, the order of steps matters. In saying, the order in which inputs were worked out never changed what they came to. With a memory, it does. Put first, then get, and get finds the new score; get first, and it finds the old one:
+    (hand) ↦ handle better(hand) with
+                   (answer) ↦ answer
+                 | (read(), next) ↦ next(rock)
 
-```
-keep(() ↦ then(put(succ(zero)), get()), zero)
-comes to pair(succ(zero), succ(zero))
-keep(() ↦ ((s) ↦ then(put(succ(zero)), s))(get()), zero)
-comes to pair(zero, succ(zero))
-```
-
-In the second, get() is an input, so it is worked out first, before put.
-
-keep never looks at the memory, so it keeps a State(Hand) as well as a State(Nat):
-
-```
-keep(() ↦ then(put(paper), get()), rock)
-comes to pair(paper, paper)
-```
-
-On the map:
-
-```
-effect F(X, …) = r : (A, …) → B | … an effect that takes types;
-F alone if it takes none widened
-```
-
-## 13. What a function may ask
-
-A rule that reads its hand from the keyboard lets a person play: (a) ↦ read(). Against better, for one round:
-
-```
-play(succ(zero), better, (a) ↦ read(), rock, rock)
-```
-
-This asks better for its hand, paper, and then asks the person, and waits at read(). Say they type scissors. Then it comes to cons(round(paper, scissors), empty): the person won.
-
-(a) ↦ read() is not a (Hand) → Hand: applied to a hand, it doesn’t end in a hand, it waits. A function type can also say what its function may ask:
-
-```
-(Hand) → Hand ! {Console}
-```
-
-reads “from Hand to Hand, and may ask Console“. Applied to a hand, such a function may stop at read(), or at show of an outcome. With each read() answered with a hand, and each show with unit, it must never get stuck, and if it ends, it must end in a hand. (a) ↦ read() is one. “May” includes not asking, so better is one too. A list of rules some of which are people is a List((Hand) → Hand ! {Console}). An effect that takes types is filled the same way as a type: record is an (Outcome) → Outcome ! {State(Nat)}.
-
-So types have three forms: a type by its name, filled with types; a variable for a type; and a function type, with what it may ask.
-
-On the map:
-
-```
-A ::= (A, …) → B ! {F(A, …), …}
-a function type, and the effects it may ask;
-! {…} left out when it lists none widened
-names every name is given as many as it takes: a defined name written right
-before inputs, as many inputs as its function takes; a constructor,
-as many contents as it holds, and none means no parentheses; a type or
-an effect, as many types as it takes; a request, as many inputs as it
-is declared with widened
-types a value is of type (A, …) → B ! {…} when, applied to values of types
-A, …, it never gets stuck, leaves no request unanswered but those of
-the effects listed, with inputs of the types they take, and, with each
-of those answered by a value of the type it is answered with, ends,
-if it ends, in a value of type B widened
-```
-
-## 14. The whole map
-
-The letters: e an expression, v a value, x a variable, c a constructor, n a defined name, p a pattern, T a type’s name, A and B types, X a variable for a type, F an effect’s name, r a request. e, … means any number of them, even none, and likewise for the other letters. | … means more like the one before, as many as needed. “Becomes” is one step; “comes to” is one or more.
-
-### What we write
-
-```
-a program is declarations and definitions, then one expression to carry out
-T(X, …) = c(A, …) | … a type, with its constructors and what they hold;
-T alone if it takes no types,
-c alone if it holds nothing
-effect F(X, …) = r : (A, …) → B | … an effect, with its requests: what each takes,
-and what it is answered with;
-F alone if it takes no types
-n = (p, …) ↦ e | … a definition: n stands for a function,
-with its cases
-parentheses only group: (e) is e, kept in one piece
-a body reaches as far as it can, and so does what comes after →
-```
-
-### Expressions
-
-```
-e ::= x a variable
-c(e, …) data: c with its contents
-n a defined name
-(p, …) ↦ e | … a function written out
-e(e, …) an application
-r(e, …) a request
-handle e with (p) ↦ e | (r(p, …), x) ↦ e | …
-a handler around e: cases for the value it comes to,
-and for requests, each with a variable for the rest
-```
-
-### Values and patterns
-
-```
-v ::= c(v, …) data: c holding values
-n a defined name
-(p, …) ↦ e | … a function written out
-p ::= x a variable: matches any value
-c(p, …) matches data built by c, whose contents match p, …
-```
+So `next(rock)` continues with rock, `better(rock)` becomes paper, and the handler's first case gives back paper. The whole handled expression comes to `paper`.
+
+With a different answer, the same expression behaves differently. A handler using `next(paper)` would make `better(read())` come to scissors. The expression asks; the handler chooses how to answer.
+
+### Which handler answers?
+
+A request goes to the nearest surrounding handler with a case for its name. A handler with no such case lets it pass:
+
+    handle (handle better(read()) with (hand) ↦ worse(hand)) with
+          (answer) ↦ answer
+        | (read(), next) ↦ next(rock)
+
+        >> … >> rock
+
+The inner handler has no case for `read`, so the outer one answers rock. Continuing still includes the inner handler: `better(rock)` gives paper, and the inner handler applies `worse` to paper, giving rock.
+
+If no surrounding handler answers, the request reaches the outside, as it did when a person chose a hand. The outside answers once and the program continues.
+
+A handler's case runs outside the handler it just used. Calling `next` puts that handler back around the remaining work. This matters if the case makes another request:
+
+    handle show(win) with
+          (answer) ↦ answer
+        | (show(outcome), next) ↦ next(show(outcome))
+
+`outcome` names the request's input. The case sends that outcome to `show` outside this handler. Once the outside answers `unit`, `next` carries on and the handler returns `unit`. It doesn't repeatedly handle its own request.
+
+Having a case for a request's name is different from matching its inputs:
+
+    handle show(win) with
+          (answer) ↦ answer
+        | (show(lose), next) ↦ next(unit)
+
+This gets stuck. The handler takes responsibility for `show`, but its only pattern doesn't match win. It doesn't pass the request on. Likewise, `handle paper with (rock) ↦ scissors` gets stuck because its final value matches no value case.
+
+### The shape with handlers
+
+A handler is an expression too. Its result can fill an input, a data content or the place where an application finds its function. Here it returns a rule, which is then applied to paper:
+
+    (handle read() with
+          (hand) ↦ always(hand)
+        | (read(), next) ↦ next(rock))(paper)
+        >> … >> rock
+
+The handler supplies rock and makes the rule `always(rock)`. The final application uses that rule. The parentheses keep the handler together, so `(paper)` belongs to the application outside it.
+
+Handlers may have value cases, request cases, or both. A value-only handler appeared in the nested example above. A request-only handler can stop at the request:
+
+    handle read() with (read(), next) ↦ rock
+        >> rock
+
+If a handled expression reaches a value and there is no matching value case, it gets stuck. As with functions, several cases of the same kind are tried in order.
+
+Expressions gain a handler. Its cases have two forms, written `h`:
+
+    e ::= c(e, …)
+        | x                   if named by a surrounding case
+        | n
+        | (p, …) ↦ e | …
+        | e(e, …)
+        | r(e, …)
+        | handle e with h | …
+
+    h ::= (p) ↦ e              for a final value
+        | (r(p, …), x) ↦ e     for a request; x names the rest
+
+Each `e` place can hold any expression, including another handler. A request case has one pattern per input and one variable for the rest. All names introduced by a case are distinct and belong to its body; the nearest binding still wins. No other shape changes.
+
+## 10. Choosing how to continue
+
+Handlers are the last new expression form. The remaining examples combine the forms we have. Since `next` is a function, a case can use it once, several times, later, or never.
+
+### Stopping
+
+A player can run out of prepared hands:
+
+    effect Forfeit = forfeit : () → Hand
+
+    firstOf : (List(Hand)) → Hand ! {Forfeit}
+    firstOf = (cons(a, rest)) ↦ a
+            | (empty) ↦ forfeit()
+
+The handler can make that a loss:
+
+    handle result(firstOf(empty), rock) with
+          (outcome) ↦ outcome
+        | (forfeit(), next) ↦ lose
+
+        >> … >> lose
+
+The case never applies `next`, so the round is never compared. The handler's answer becomes the result of the whole handled expression. An error that abandons the current computation works this way.
+
+### Trying several answers
+
+Which hands would beat rock? We can answer `read()` three times and count the wins:
+
+    handle result(read(), rock) with
+          (outcome) ↦ points(outcome)
+        | (read(), next) ↦ add(next(rock), add(next(paper), next(scissors)))
+
+        >> … >> succ(zero)
+
+Each call to `next` starts from the same waiting point, with a different hand. Each result passes through the handler's first case, so each becomes a number: zero for rock, one for paper, zero for scissors.
+
+Here `next` has type `(Hand) → Nat`. The request still needs a hand as its answer, but the handler turns the final outcome into a number. The type makes both ends visible.
+
+This is search: try possible answers and combine what they lead to. We used ordinary functions and data to say what to do with the alternatives.
+
+## 11. Keeping a score
+
+A score changes as rounds are played. We can describe each change with a score before and a score after:
+
+    recordWith : (Outcome, Nat) → Pair(Outcome, Nat)
+    recordWith = (outcome, total) ↦ pair(outcome, add(points(outcome), total))
+
+    recordWith(win, zero)
+        >> … >> pair(win, succ(zero))
+    recordWith(draw, succ(zero))
+        >> … >> pair(draw, succ(zero))
+
+To record two rounds, we take the score from the first result and pass it into the second call:
+
+    recordBothWith : (Round, Round, Nat) → Pair(List(Outcome), Nat)
+    recordBothWith = (first, second, total) ↦
+        ((pair(a, afterFirst)) ↦
+            ((pair(b, afterSecond)) ↦
+                pair(cons(a, cons(b, empty)), afterSecond))
+            (recordWith(judge(second), afterFirst)))
+        (recordWith(judge(first), total))
+
+Read from the first call: judge the first round and record it with `total`. Call its outcome `a` and its score `afterFirst`. Record the second round with that score, then give back both outcomes and the final score.
+
+    recordBothWith(round(paper, rock), round(rock, rock), zero)
+        >> … >> pair(cons(win, cons(draw, empty)), succ(zero))
+
+`recordBothWith` only passes the score along. A function that uses it would have to pass the score too. Every function between the place the score starts and the places it changes would need to carry it in and out. The core can say a changing score, but not locally: one small idea changes every function on the way. That is the kind of idea requests are for.
+
+Requests let us mention the score where it is actually used:
+
+    effect State(Stored) = get : () → Stored
+                         | put : (Stored) → Unit
+
+An effect can leave types open, as a data type can. `State(Nat)` keeps a number; `State(Hand)` keeps a hand. `get()` asks for the current value. `put(a)` asks to replace it with `a` and is answered with `unit`.
+
+Only effect declarations and effect-list entries change:
+
+    effect F(X, …) = r : (A, …) → B | …
+
+    E ::= F(A, …)
+        | S                   a list variable, only in a signature
+
+An effect's type variables follow the same rules as a data type's. Fill them with as many types as the declaration lists. With none, write `Console`, without parentheses.
+
+In one effect list, each effect name has one choice of type arguments. Combining `State(Nat)` and `State(Hand)` isn't allowed: both use the same `get` and `put` names, so their requests couldn't be distinguished.
+
+To do one thing, then return another:
+
+    then : (Unit, Item) → Item
+    then = (u, a) ↦ a
+
+Inputs are worked out from left to right. The first input therefore happens before the second, even though the body uses only the second. We can record a win by getting the score, adding one, and putting it back:
+
+    record : (Outcome) → Outcome ! {State(Nat)}
+    record = (win) ↦ then(put(succ(get())), win)
+           | (outcome) ↦ outcome
+
+And record two rounds:
+
+    recordBoth : (Round, Round) → List(Outcome) ! {State(Nat)}
+    recordBoth = (first, second) ↦
+        cons(record(judge(first)), cons(record(judge(second)), empty))
+
+`recordBoth` passes no score. Its type says it may ask for state because `record` does. `then` itself is a pure function: the requests in its inputs happen before its body runs.
+
+### Answering the memory requests
+
+A handler supplies the score. It passes the current score from one request to the next, but writes that passing in one place:
+
+    keep : (() → Result ! {State(Stored), Asks}, Stored) → Pair(Result, Stored) ! {Asks}
+    keep = (task, start) ↦
+        (handle task() with
+              (answer) ↦ ((current) ↦ pair(answer, current))
+            | (get(), next) ↦ ((current) ↦ next(current)(current))
+            | (put(value), next) ↦ ((current) ↦ next(unit)(value)))(start)
+
+The signature says: give `keep` a task and an initial stored value; it gives back the task's result together with the final stored value. It answers the state requests itself. Other requests, described by `Asks`, pass through it.
+
+The task is a function with no inputs. That keeps its work waiting until `task()` runs inside the handler. Given the work directly, we would run it before the handler was there.
+
+Every case returns a function waiting for the current score:
+
+- At a final value: pair that value with the score.
+- At `get()`: answer with the score and continue with the same score.
+- At `put(value)`: answer `unit` and continue with `value` as the score.
+
+The `(start)` at the end supplies the first score; the parentheses around the handler keep it out of the last case's body. The two applications in `next(current)(current)` have different jobs. The first answers the request. The second supplies the score to the function returned by the continued handler.
+
+    keep(() ↦ recordBoth(round(paper, rock), round(rock, rock)), zero)
+        >> … >> pair(cons(win, cons(draw, empty)), succ(zero))
+
+The first round wins and increases the score. The second draws and leaves it alone. The task gives back the outcomes; `keep` adds the final score.
+
+Order now matters in a visible way:
+
+    keep(() ↦ then(put(succ(zero)), get()), zero)
+        >> … >> pair(succ(zero), succ(zero))
+
+    keep(() ↦ ((saved) ↦ then(put(succ(zero)), saved))(get()), zero)
+        >> … >> pair(zero, succ(zero))
+
+In the first, we put one and then get one. In the second, we get zero first, call it `saved`, then put one. The final score is the same, but the task returns the value it read earlier.
+
+The handler never inspects the stored value. The same definition keeps a hand:
+
+    keep(() ↦ then(put(paper), get()), rock)
+        >> … >> pair(paper, paper)
+
+The task can also ask to show its outcome:
+
+    keep(() ↦ then(show(record(win)), get()), zero)
+
+`keep` answers the score requests. `show(win)` passes through it to the outside. Once that is answered with `unit`, the expression comes to `pair(succ(zero), succ(zero))`. Here `Stored` is `Nat`, `Result` is `Nat`, and `Asks` is `Console`.
+
+Different effects can appear in the same expression. Each request still finds the nearest handler with a case for its name:
+
+    handle (handle then(show(win), get()) with
+                  (answer) ↦ answer
+                | (show(outcome), next) ↦ next(unit)) with
+          (answer) ↦ answer
+        | (get(), next) ↦ next(zero)
+
+        >> … >> zero
+
+The inner handler answers `show`. The request for `get` passes through it to the outer handler. The result is the number supplied there.
+
+### Two scores, two places
+
+One `keep` supplies one store. Two nested handlers for the same `get` and `put` names don't give us two stores we can choose between: the nearer handler answers both names. To keep a score for each player, give each score a **place**, and include that place in each request:
+
+    Place = mine | yours
+
+    effect Scores = look : (Place) → Nat
+                  | change : (Place, Nat) → Unit
+
+`look(mine)` asks for my score; `change(yours, zero)` asks to set yours to zero. Adding a point works for either place:
+
+    bump : (Place) → Unit ! {Scores}
+    bump = (place) ↦ change(place, succ(look(place)))
+
+The handler keeps both scores. Each case returns a function waiting for the two current values, `a` and `b`:
+
+    keepScores : (() → Result ! {Scores, Asks}, Nat, Nat) → Result ! {Asks}
+    keepScores = (task, first, second) ↦
+        (handle task() with
+              (answer) ↦ ((a, b) ↦ answer)
+            | (look(mine), next) ↦ ((a, b) ↦ next(a)(a, b))
+            | (look(yours), next) ↦ ((a, b) ↦ next(b)(a, b))
+            | (change(mine, value), next) ↦ ((a, b) ↦ next(unit)(value, b))
+            | (change(yours, value), next) ↦ ((a, b) ↦ next(unit)(a, value)))(first, second)
+
+Looking answers with the selected score and keeps both scores as they were. Changing answers `unit` and replaces only the selected score. At a final value, the handler gives back the task's answer.
+
+    keepScores(() ↦ then(bump(mine), pair(look(mine), look(yours))), zero, zero)
+        >> … >> pair(succ(zero), zero)
+
+A place is a value, so we can pass it to a function or hold it in data. Two names can refer to the same place:
+
+    keepScores(() ↦ ((samePlace) ↦ then(bump(samePlace), look(mine)))(mine), zero, zero)
+        >> … >> succ(zero)
+
+`samePlace` was given `mine`. Adding through `samePlace` changes what looking through `mine` finds: both refer to the same score. The scores live in the handler; a place tells it which score we mean.
+
+This uses the same requests, patterns, functions and data as before. Here the two places are fixed. More places can be represented with numbers and their stored values kept in a list.
+
+## 12. Continuing later
+
+A handler can return the rest of the work instead of carrying it out immediately. Then whoever receives it decides when to continue.
+
+Let a player give its hands one at a time:
+
+    effect Give = give : (Hand) → Unit
+
+    cycle : (Hand) → Unit ! {Give}
+    cycle = (a) ↦ then(give(a), cycle(better(a)))
+
+Starting with rock, it gives rock, paper, scissors, then rock again. It keeps asking forever.
+
+A handler can stop at each hand and return that hand with the rest:
+
+    Moves = done | gave(Hand, (Unit) → Moves)
+
+    moves : (() → Unit ! {Give}) → (Unit) → Moves
+    moves = (task) ↦ (u) ↦
+        handle task() with
+              (answer) ↦ done
+            | (give(a), next) ↦ gave(a, next)
+
+`moves` gives back a function waiting for `unit`. When applied, it starts the task. At `give(a)`, it returns `a` together with `next`, without applying `next`.
+
+The returned `next` also waits for `unit`, the answer to `give`. Applying it reaches the next hand. In these lines, `next`, `after` and `again` name the functions returned alongside the hands:
+
+    moves(() ↦ cycle(rock))(unit)       >> … >>   gave(rock, next)
+    next(unit)                         >> … >>   gave(paper, after)
+    after(unit)                        >> … >>   gave(scissors, again)
+
+The player is infinite, but each request for a move reaches one hand. This is a generator: its caller asks for each next item when it needs it.
+
+`Moves` also shows a recursive type containing a function. A `gave` holds a hand and a function that can produce more `Moves`. Such a sequence can keep unfolding indefinitely; it needn't eventually reach `done`.
+
+The type forms haven't changed, but the rule for recursive references widens. In section 5, a type referred back to itself through data contents. It may now do so through a function's result too, as in `(Unit) → Moves`.
+
+This language excludes recursive references through a function's input: `Test = test((Test) → Outcome)` is not an allowed declaration. The restriction applies through other type declarations and type arguments too. An answer to a request is an input supplied from outside, so a recursive reference may not pass through a request's answer type either.
+
+### Taking turns
+
+Two generators can play each other. `turns` asks each for a hand, and `joinMoves` builds a round if both supplied one:
+
+    turns : (Nat, (Unit) → Moves, (Unit) → Moves) → List(Round)
+    turns = (zero, first, second) ↦ empty
+          | (succ(left), first, second) ↦ joinMoves(left, first(unit), second(unit))
+
+    joinMoves : (Nat, Moves, Moves) → List(Round)
+    joinMoves = (left, gave(a, first), gave(b, second)) ↦
+                    cons(round(a, b), turns(left, first, second))
+              | (left, first, second) ↦ empty
+
+The new functions use no new forms. `first` and `second` hold what remains of each player, and `turns` chooses when to continue each one.
+
+    rocks : () → Unit ! {Give}
+    rocks = () ↦ then(give(rock), rocks())
+
+    turns(succ(succ(succ(zero))), moves(() ↦ cycle(rock)), moves(rocks))
+        >> … >> cons(round(rock, rock),
+                        cons(round(paper, rock),
+                             cons(round(scissors, rock), empty)))
+
+Each player describes its own moves. `turns` controls their order. This gives a small example of cooperative scheduling: tasks give control back at requests, and a scheduler decides which task continues.
+
+## 13. The whole medium
+
+Here are the pieces together. The letters stand for parts of the language:
+
+| Letter | What it stands for |
+|---|---|
+| `e`, `v` | An expression, a value |
+| `p`, `h` | A pattern, a handler case |
+| `x`, `n` | A variable, a defined function's name |
+| `c`, `r` | A constructor, a request |
+| `T`, `F` | A declared type's name, an effect's name |
+| `A`, `B`, `X` | Types, and a variable for a type |
+| `E`, `S` | An entry in an effect list, and a variable for a list of effects |
+
+`e, …` means any number of expressions, including none; likewise for the other letters. An item followed by `| …` allows one or more alternatives. Omit parentheses for a type or effect with no type arguments, and for a constructor with no contents. `>>` shows one evaluation step; `>> … >>` abbreviates several. Neither is part of a program.
+
+### Declarations and definitions
+
+    T(X, …) = c(A, …) | …                 a type and its constructors
+    effect F(X, …) = r : (A, …) → B | …   an effect and its requests
+
+    n : A                                 a function's type, when written
+    n = (p, …) ↦ e | …                    its definition
+
+A program gives declarations and definitions, then an expression to work out. A signature can describe a particular use of a more general function. It doesn't change evaluation or enforce its description: checking whether a function fits is outside the medium.
+
+### Expressions, values and patterns
+
+    e ::= c(e, …)                         data
+        | x                               if named by a surrounding case
+        | n                               a defined function
+        | (p, …) ↦ e | …                  a function written out
+        | e(e, …)                         an application
+        | r(e, …)                         a request
+        | handle e with h | …             a handled expression
+
+    v ::= c(v, …)                         data whose contents are values
+        | n                               a defined function
+        | (p, …) ↦ e | …                  a function written out
+
+    p ::= x                               match any value and name it
+        | c(p, …)                         match a constructor and its contents
+
+    h ::= (p) ↦ e                         for a final value
+        | (r(p, …), x) ↦ e                for a request, naming the rest as x
+
+Every `e` place accepts any expression form, subject to the rules below. The shapes can nest without a fixed limit.
 
 ### Types
 
-```
-A ::= T(A, …) a type, filled with types; T alone if it takes none
-X a variable for a type
-(A, …) → B ! {F(A, …), …}
-a function type, and the effects it may ask;
-! {…} left out when it lists none
-```
+    A ::= T(A, …)                         a declared type, filled with types
+        | X                               a type variable available here
+        | (A, …) → B ! {E, …}             a function type
 
-### Steps
+    E ::= F(A, …)                         a declared effect, filled with types
+        | S                               a list variable, only in a signature
 
-```
-((p, …) ↦ e | …)(v, …)
-becomes the body of the first case whose patterns v, … match,
-with what each variable matched put wherever its name means it
-n(v, …) becomes the same, with the cases of n's definition
-handle v with …
-becomes the body of the first case for values that v matches,
-with what each variable matched put wherever its name means it
-handle e with …
-becomes the body of the first case for r whose patterns v, … match,
-with what they matched in place, and the rest in place of x,
-when the next thing to work out in e is a request r(v, …),
-and no handler in e around that request has a case for r
-the rest is (x) ↦ handle e′ with …, where e′ is e with x where the request was,
-and x is a variable used nowhere in e or in the handler
-```
+Parentheses can group any type: `(A)` means the same type as `A`. Leave out `! {…}` when there are no effects. Each effect suffix belongs to the nearest preceding arrow in the same group. Without grouping, the result after an arrow extends to the right.
 
-### Where steps happen
+A declaration can use declared types and effects, and its own type variables. Those variables have distinct names and cannot reuse declared type or effect names. A type or effect takes as many type arguments as its declaration lists.
 
-```
-a step needs values: in an application, what is applied is worked out first,
-then its inputs; in data, its contents; in a request, its inputs;
-all from left to right
-in a handler, steps happen in the expression inside it
-nothing inside a function is worked out until it is applied
-```
+In a signature, an undeclared capitalised name stands for an arbitrary type or, as an effect-list entry, an arbitrary list of effects. One name cannot stand for both. Each choice stays the same throughout that signature.
 
-### How carrying out ends
+An effect-list variable can stand for no effects, one, or several. Combine them with the named effects. Order doesn't matter; repetitions count once. Each effect name must have the same type arguments throughout the combined list. List variables occur only in signatures.
 
-```
-in a value: the result
-stuck: something is left to work out, no step applies, and it is not waiting
-never: carrying out goes on forever
-waiting: the next thing to work out is a request that no handler around it has
-a case for; when the outside answers, the answer goes where the request was,
-and carrying out goes on
-```
+A value belongs to a declared type when it is made with one of that type's constructors and its contents belong to the types declared for them. Fill the declaration's type variables with the types supplied to it.
 
-### Names
+A function belongs to a function type if it takes the stated number of inputs and meets three conditions. Give it inputs of the stated types, and answer its requests with values of their declared answer types. However those answers are chosen:
 
-```
-each type, effect and defined name is declared or defined once;
-each constructor belongs to one type, and each request to one effect
-a declaration or a definition can use any type or defined name,
-its own included, even one declared or defined after it
-every name is given as many as it takes: a defined name written right before
-inputs, as many inputs as its function takes; a constructor, as many contents
-as it holds, and none means no parentheses; a type or an effect, as many
-types as it takes; a request, as many inputs as it is declared with
-the cases of one function all have the same number of patterns
-in a declaration, every name in a type is a declared type, or one of the
-declaration's own variables; those are all different, and none is named
-like a declared type
-in a pattern, a name is a constructor if it was declared as one,
-and otherwise a variable
-the variables of one case are all different,
-and none has the name of a defined name or a request
-a variable means something in the body of its own case,
-functions written inside it included
-in an expression, a name means the nearest variable of that name;
-with none, it is a constructor, a request or a defined name
-```
+- It never gets stuck.
+- Each request it leaves unanswered belongs to a listed effect and has inputs of the declared types.
+- Any final result belongs to `B`.
 
-### What a type means
+It may also run forever. Fill in an effect's type arguments when reading its requests: under `State(Nat)`, `put` takes a `Nat` and `get` is answered with one.
 
-```
-a value is of type T(A, …) when it is built by one of T's constructors,
-holding values of the types declared for its contents,
-with A, … in place of T's variables
-a value is of type (A, …) → B ! {…} when, applied to values of types A, …,
-it never gets stuck, leaves no request unanswered but those of the effects
-listed, with inputs of the types they take, and, with each of those answered
-by a value of the type it is answered with, ends, if it ends, in a value
-of type B
-a type that holds itself: a value is of it when following the definition,
-as far as it can be followed, never finds anything that does not fit
-a type can hold itself in its contents, and in what a function gives back,
-but not in what a function takes
-nothing in carrying out looks at types
-```
+A function fits a signature with variables when it belongs to the type made by every allowed choice of them, for types and effect lists alike.
 
-### The shape
+Recursive types include all values consistent with these descriptions, including values that keep unfolding through functions. A recursive path may pass through data contents or function results, but must never put the recursive type in a function input or a request-answer type. This also applies when the path goes through a type argument in another declaration.
 
-```
-made by used by
-data a constructor, holding values a pattern, which takes it apart
-function cases, each with patterns and a body applying it to inputs
-request asking a handler, which answers it
-every step is a use meeting what was made
-```
+### Names and grouping
 
-Five forms of expression for saying, two for doing, and three forms of type. Everything else is a combination of them.
+Each global name has one declaration or definition, and a defined function has at most one signature. Each constructor belongs to one type declaration, and each request to one effect declaration. Types and effects, including their type variables, start with capitals; names used in expressions start without capitals.
+
+A definition can use any defined name, including itself or a name defined later. A type declaration can refer to itself or other declared types, subject to the recursive-type restriction above.
+
+In a pattern, a declared constructor means that constructor. Any other name is a variable. The variables of one case are distinct, including the variable for the rest in a request case. They cannot reuse a constructor, request or defined function's name.
+
+A variable is in scope in its case's body, including functions inside it. The nearest case that binds a name determines what the name means. A name in an expression with no such binding must be declared or defined.
+
+A constructor or request uses its declared number of contents or inputs, also in patterns. All cases of a function have the same number of patterns. Applying it to a different number of inputs gets stuck.
+
+Parentheses group an expression or a type. Function and handler bodies extend to the right; group them when following text belongs outside the body.
+
+### Working out an expression
+
+In an application, first work out what is being applied, then its inputs from left to right. In data or a request, work out the contents or inputs from left to right. In a handler, work on the expression it surrounds. Nothing happens inside a function until it is applied.
+
+Applying a function to values takes one step. Find the first case whose patterns all match. The application becomes that case's body, with each matched value put wherever its variable means it. A defined function uses the cases of its definition in the same way.
+
+Matching follows the shape of data. A constructor pattern needs the same constructor, with each content matching its pattern. A variable matches the whole value at that place. If no case matches, applying gets stuck. Applying data also gets stuck.
+
+When a handled expression becomes a value, the handler takes one step to the body of its first matching value case. Put the matched values in place in that body. With no matching value case, it gets stuck.
+
+When the next work is a request with value inputs, find the nearest surrounding handler with a case for that request's name. The handler takes one step to the body of its first matching request case. Put the inputs' matched values in place, and give the extra variable the rest of the work. If the handler names the request but none of its patterns matches, it gets stuck.
+
+The rest is a function taking one answer. Its body is the interrupted expression with that answer where the request was, surrounded by the same handler. Intervening handlers that let the request pass are kept too. Use a fresh name for the answer so it cannot interfere with any existing variable. The request case itself runs outside the handler just used.
+
+With no handler for a request, evaluation waits for the outside. Its answer replaces the request, and evaluation continues. A whole computation therefore has four possibilities: it returns a value, gets stuck, waits for an answer, or continues forever.
+
+### The shape to remember
+
+| Piece | How it is made | How it is used |
+|---|---|---|
+| Data | A constructor holds values | A pattern takes them apart |
+| A function | Cases connect patterns to bodies | Application supplies inputs |
+| A request | An operation asks with inputs | A handler supplies a response and controls continuation |
+
+Names let functions refer to themselves and to one another. Types make contents, inputs and results visible. The larger examples combine these pieces: state passes a value between requests; a generator keeps the rest for later.
+
+### Why these pieces
+
+Functions alone could already compute anything; even hands and numbers can be written as functions. The core gives data its own form anyway, so that it can be seen.
+
+Requests and handlers let us ask for something where it is needed, without passing it through every function on the way. Errors, search, state, generators and taking turns use those forms; they need no further ones.
+
+Types describe what kinds of things we mean. They don't change what a program does.
+
+So when you meet something new, whether a feature of another language or a precise idea of your own, ask what data, what functions and what requests it involves, what kinds of things they are, and how they are combined.

@@ -14,7 +14,7 @@
 
 **Types and function signatures** belong to the written medium. A signature such as `better : (Hand) → Hand` shows what goes in and what comes out; effect information shows what a function may ask. These descriptions help us see how pieces fit together. Types were already present; restoring signatures makes them visible alongside definitions without adding a computational primitive.
 
-**Current edition.** Among the current editions, only `medium-revised.md` uses this restored presentation. The other books and PDFs have not been updated to match.
+**Current edition.** Among the current editions, only `medium.md` uses this restored presentation. The other books and PDFs in /old have not been updated to match.
 
 **Conveniences** make saying shorter: they're shorter ways to write what's already there. **Checking and proofs** establish whether descriptions and other claims are correct. Writing a signature does not establish its correctness, and omitting it does not change how the program runs. The medium includes these useful descriptions; checking them and proving claims remain outside its scope.
 

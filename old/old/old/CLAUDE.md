@@ -1,16 +1,9 @@
-## How we write
+Understand before answering. Break a question down until every part of it is clear, and only then build on it; a quick answer usually hides something not yet understood. Assume we may be missing something fundamental: when anything feels off, look for the idea that is hidden or not yet accounted for, rather than explaining around it. Go after the one correct account, not a set of options; where something truly is a choice, say why it is made.
 
-The driving principle: be very careful at every jump from one idea to the next. That jump is where a reader gets lost.
+Explain things, in conversation as much as in writing, the way a person naturally would out loud, starting from as little as possible. Keep ideas untangled: bring each one in only when something needs it, say it on its own and in its general form, build it only on ideas already said, never on where we are heading, and let no word quietly carry another idea along with it. Make things explicit: when a distinction is there, name it and use it to explain, rather than working around it. A step should raise only the questions that the next steps answer. When an idea comes in, go through how it combines with each idea already there, so that every interaction is accounted for; fix things by making them simpler, not by adding more. Find the concise shape first, then explain from it: each sentence should be a reading of the shape, and can be checked against it. Avoid borrowing from outside what has been built, unless it truly helps.
 
-- Take small steps. Each step adds one idea, built only from what is already shown. If a step needs something not yet shown, show that first.
-- Define every word before using it. A new word is in **bold** where it is introduced. From then on, ideas are developed only in the book's own defined words, plus plain everyday words that carry no idea of their own.
-- Watch for hidden jumps. An everyday word can quietly carry an idea not yet shown: calling variables a "kind" of placeholder carries the idea of a group within a type. Keep one word for each idea, and one idea for each word.
-- Pair each idea with an example.
-- Reach for the simple, essential idea underneath. Say only what the next step needs, and don't wander.
-- Many small pieces that build up correctly are better than a long passage that covers more.
+The Note Book closes the ideas: plain notation, with as little language as possible. The Book explains them: read naturally, as someone explaining out loud, it shows what every piece does, with an example of every way the pieces combine, so that each is obvious.
 
-## How we work
+Check each change with fresh eyes: a reader who has not seen the discussion, looking for anything hidden, tangled or missing.
 
-- When the whole would come out better rewritten, rewrite the whole instead of patching a part. A patch keeps whatever was wrong in the first place.
-- A rewrite keeps what was strong. Before rewriting, tell apart what was wrong from what was strong, and build the new version around the strong parts.
-- When feedback shows a lasting principle, add it to this file right away, without being asked.
+Keep the whole right. When something is learned, let it reshape the whole, this file included, instead of patching one spot. Insights the book has not reached yet go in `Notes.md`, so nothing learned is lost; once the book says something, or a question is settled, it leaves `Notes.md`.
