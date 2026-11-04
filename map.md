@@ -1,36 +1,38 @@
 # Where we arrived
 
-**The question.** To know something we have to be able to say it, so knowledge rests on a medium of expression. What is the smallest set of building blocks that, once learned, lets everything else be thought and said through it?
+**The aim.** A small, explicit medium for thinking about and expressing computations, and any idea that can be stated precisely as things and steps. Learn its basic pieces, then understand and build more elaborate ideas by combining them. The reader should be able to use the medium without first learning how to design a language.
 
-**The answer.** For anything that can be described as things and steps, the answer is a **disentangled lambda calculus**: the lambda calculus, separated into a few distinct parts, with types to say what kinds of things there are, and extended with effects.
+**The trade.** The current `medium.md` starts effects with one general mechanism, requests and handlers, which can express memory, stopping and many other effects. That generality is useful when defining new control behavior, including in languages and libraries. The proposal starts instead with the common effects: memory, exceptions and input/output get fixed rules and direct operations, such as `score = score + 1`. The general mechanism remains available as advanced material, outside the starting vocabulary. The trade concerns which operations the starting vocabulary makes direct and what the reader must understand to use them. Completeness is unchanged, and the base doesn't get smaller. The intended gain is simpler expression of ordinary programs.
 
-**The shape:**
+**The proposed starting vocabulary: data, functions and recursion, plus fixed operations for memory, exceptions and input/output.**
 
-| Layer | What it is | Why it's there |
-|---|---|---|
-| **Base** | functions alone: make one, apply one | The *theoretical* minimum. It can already compute anything (Church, 1936). |
-| **Core** | **data**, made by constructors and used by patterns; **functions**, made by cases and used by applying; **names** that can refer to themselves; **types**, which describe kinds of things | The *natural* minimum. Each job that functions were secretly doing gets its own form, so it can be seen. Types and function signatures make the kinds of contents, inputs and results visible. |
-| **Effects** | requests (state, errors, search, taking turns, input/output) answered by handlers | The one thing the core can't say locally: *doing*, as opposed to *saying* |
+| Piece | What it lets us express |
+|---|---|
+| **Data** | Things, made with constructors and taken apart by patterns |
+| **Functions** | Rules that take inputs and produce results; functions can themselves be inputs, results or data contents |
+| **Recursion** | Repetition, through functions referring to themselves or one another |
+| **Fixed effects** | Reading and changing stored values, stopping on failure through exceptions, and interacting with the outside |
 
-**Types and function signatures** belong to the written medium. A signature such as `better : (Hand) → Hand` shows what goes in and what comes out; effect information shows what a function may ask. These descriptions help us see how pieces fit together. Types were already present; restoring signatures makes them visible alongside definitions without adding a computational primitive.
+**The question to ask.** Faced with a new idea, ask what data, what functions and what effects it involves, what kinds of things they are, and how they combine.
 
-**Current edition.** Among the current editions, only `medium.md` uses this restored presentation. The other books and PDFs in /old have not been updated to match.
+**What “primitive, complete and natural” means.**
 
-**Conveniences** make saying shorter: they're shorter ways to write what's already there. **Checking and proofs** establish whether descriptions and other claims are correct. Writing a signature does not establish its correctness, and omitting it does not change how the program runs. The medium includes these useful descriptions; checking them and proving claims remain outside its scope.
+- **Primitive:** a small set of starting operations with explicit rules, chosen to make central ideas direct. Data gets constructors and patterns even though functions can encode it; memory gets read and update operations even though handlers can model it. A useful primitive need not add computational power. This is a chosen basis, not a unique minimum.
+- **Complete:** data, functions and unrestricted recursion can express any computable transformation of data. Input/output additionally provides interaction with the outside.
+- **Natural:** ordinary programming ideas should have direct forms and be expressible where they are used, without forcing changes through unrelated code. This locality criterion draws on [Felleisen's work on expressibility](https://doi.org/10.1016/0167-6423(91)90036-W). Larger ideas should be understandable through their parts. These are aims to test on examples, not guarantees for every idea.
 
-**The key decision.** Computing has two founding pictures. In Church's, steps act on the expression itself (*saying*). In Turing's, steps change a memory beside the program (*doing*). They compute the same things. The medium puts Church at the base and brings Turing's picture back on top, as effects.
+**How we got here.** Pure lambda calculus (functions only) uses functions to encode data and repetition. The current medium gives data its own forms, then adds requests and handlers as a general way to express effects. The proposed version gives selected effects fixed rules and direct operations, such as `score = score + 1`. The reader can understand those rules without first constructing memory through handlers. Handlers can already be reused; the change is to make chosen operations part of the starting vocabulary.
 
-**The rule for what's primitive.** An idea becomes part of the medium only if it can't be expressed locally through what's already there (Felleisen). Anything else is written *in* the medium, not added *to* it. Types are on a different axis: they don't change what any program does. They say what kinds of things there are.
+**Saying and doing.** The proposed medium is a hybrid: **saying** works out values through data and functions; **doing** changes memory, stops work or interacts with the outside. Pure evaluation rewrites expressions; when memory changes, steps also show its current state. Say where you can; do where the idea needs it.
 
-**The way of thinking.** Every concept is a pattern of the blocks. When you meet anything new, whether a language feature, a whole language or a precise idea, ask what data, what functions and what effects it involves, what kinds of things they are, and how they're combined. A language is the core, plus a choice of features, plus a way of writing them (Landin).
+**Where handlers belong.** The working proposal is to keep requests and handlers available as advanced material, explained in an appendix. This simplifies the starting vocabulary while retaining their general capabilities. Removing them entirely would be a separate decision: computational completeness would remain, but some ways of customizing and combining effects would become less direct.
 
-**How solid it is:**
+**How the pieces are explained.** Types describe data, function inputs and results, and possible effects. These descriptions do not enforce themselves; checking and proofs remain outside the medium. Evaluation has a specified order, as it already does in `medium.md`.
 
-- **Settled:** functions as the base; data, pattern matching and types as the core; Felleisen's test.
-- **Settled in direction, still moving in detail:** effects. The field hasn't decided between handlers and monads.
-- **A choice:** types describe kinds of values, and signatures describe functions. We use them to make the shape of what we express clearer. Checking those descriptions and proving claims are separate from the presentation and from execution.
-- **A synthesis:** arranging all this as one medium. Every part is standard, but the arrangement is not a textbook convention.
+**Python's role.** Python is the chosen language for practice. Understand computations through the medium and write them using Python's conventions. The medium's rules and Python's rules must be connected explicitly; they are not assumed to be identical.
 
-**Its limits.** The medium makes ideas exact; it doesn't make them true. Whether a description fits the world is settled outside it. And ideas that aren't precise, like what red looks like or what's fair, don't reduce to it, though the medium makes disagreements about them explicit.
+**Standing and limits.** The building blocks have established precedent, including [SICP's treatment of functions and state](https://sicp.sourceacademy.org/chapters/3.1.3.html); their selection and arrangement as one medium for thought is our synthesis. The medium makes descriptions exact, not true. Computational completeness does not mean that every precisely stated question can be answered by a computation.
 
-**In one sentence:** anything that can be stated precisely can be built from data and functions, with types to say what kinds of things there are and effects for doing, and learning that base once turns every language, and every precise idea, into a combination of things you already know.
+**Still open.** Whether names can be rebound or only explicit storage places change; whether shared data can change in place; whether generators need a direct form; whether handlers can change how the fixed effects behave, or only define new kinds of effect. The current preference is Python-like rebinding and shared mutable objects, to be assessed through examples.
+
+**Next step.** Write a short candidate using rock, paper, scissors: data, a function, a changing score, repetition, input/output and failure. Choose one coherent set of rules and explain each when it appears. `medium.md` still presents requests and handlers in §§8–12; this map records the new direction, not a completed rewrite.
